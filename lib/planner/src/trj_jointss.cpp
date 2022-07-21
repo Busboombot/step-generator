@@ -245,6 +245,12 @@ JointSubSegment3 JointSegment::getSubSegments3() const {
     };
 }
 
+/**
+ * @brief 
+ * 
+ * @param jss 
+ * @param phase 
+ */
 void JointSegment::loadJointSubSeg(JointSubSegment& jss, SubSegName phase)  {
 
     switch (phase){
@@ -283,17 +289,6 @@ ostream &operator<<( ostream &output, const PhaseJoints &pj ) {
 
 // [ Va Xa : Vc Xc : Vc Xd]
 ostream &operator<<( ostream &output, const JointSubSegment3 &j ) { 
-
-    /*
-    output <<  "[" 
-    << left << setw(6) << j.a.v_0 << " " << right << setw(6) << j.a.x
-    << "↗"
-    << right << setw(6) << j.c.x << "@"  << left << setw(6) << j.c.v_0
-    << "↘"
-    << left << setw(6) << j.d.x  << " " << right << setw(6) << j.d.v_1
-    << "]"; 
-    */   
-
 
     output <<  "[" 
     <<  setw(6) << j.a.v_0 << "↗" <<  setw(6) << j.c.v_0 << "↘" <<  setw(6) << j.d.v_1

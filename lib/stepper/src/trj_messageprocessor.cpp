@@ -77,6 +77,9 @@ void MessageProcessor::processPacket(const uint8_t* buffer_, size_t size){
     } else if (ph->code == CommandCode::RESET) {
       loop.reset();
 
+    } else if (ph->code == CommandCode::ZERO) {
+      loop.zero();
+
     } else if(ph->code == CommandCode::CONFIG) {
       loop.setConfig( (Config*) (buffer_+sizeof(PacketHeader)));
 

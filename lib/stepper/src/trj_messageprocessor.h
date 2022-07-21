@@ -17,23 +17,33 @@ enum class CommandCode : uint8_t {
   
   ACK =     1,
   NACK =    2,
-  RUN =     3,
-  STOP =    4,
-  RESET =   5,  // 
-  MESSAGE = 6,  // Payload is a message; the next packet is text
-  ERROR =   7,  // Some error
-  ECHO  =   8,  // Echo the incomming header
-  NOOP  =   9,  // Does nothing, but get ACKED
-  CONFIG =  10, // Reset the configuration
-  AXES =    11, // Configure an axis
-  INFO   =  12, // Return info messages
-  EMPTY  =  13, // Queue is empty, nothing to do. 
-  POSITIONS=19,  // Position report. 
+  DONE =    3,  // A Movement command is finished
+  EMPTY  =  4, // Queue is empty, nothing to do. 
+
+  RMOVE =   11,  // A relative movement segment, with just the relative distance.   
+  AMOVE =   12,  // An absolute movement
+  JMOVE =   13,   // A Jog movement. 
+
+
+  RUN =     21,
+  STOP =    22,
+  RESET =   23,  // 
+  ZERO  =   24,  // Zero positions
+  CONFIG =  25, // Reset the configuration
+  AXES =    26, // Configure an axis
+
+
+
+  MESSAGE = 91,  // Payload is a message; the next packet is text
+  ERROR =   92,  // Some error
+  ECHO  =   93,  // Echo the incomming header
+  DEBUG  =  94,  // 
+  INFO   =  95, // Return info messages
+
+  NOOP  =   99,  // Does nothing, but get ACKED
+
+  POSITIONS= 101,  // Position report. ( Unused)
   
-  DONE =    20,  // A Movement command is finished
-  RMOVE =   21,  // A relative movement segment, with just the relative distance.   
-  AMOVE =   22,  // An absolute movement
-  JMOVE =   23   // A Jog movement. 
 };
 
 /* Header on every command packet */

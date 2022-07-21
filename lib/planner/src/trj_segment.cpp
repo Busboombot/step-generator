@@ -108,6 +108,13 @@ SubSegments3 *Segment::getSubSegments3(){
     return v;
 }
 
+/**
+ * @brief Load parameters from a phase of a segment into the PhaseJoints 
+ * object, from which the steps will be stepped out. 
+ * 
+ * @param pj 
+ * @param phase 
+ */
 void Segment::getPhaseJoints(PhaseJoints& pj, int phase){
    
     pj.seq = n;

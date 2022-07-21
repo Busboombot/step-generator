@@ -57,11 +57,17 @@ public:
         return state[n].step(getStepper(n));
     }
 
-    inline void reset(){}
+    void reset();
+
+    void zero();
 
     void isr();
 
     void clearIsr();
+
+    void signalSegmentComplete();
+
+    void clearSegmentComplete();
 
     void processMove(const uint8_t* buffer_, size_t size);
 
@@ -78,6 +84,7 @@ private:
     
     IntervalTimer setTimer;
     IntervalTimer clearTimer;
+    IntervalTimer segmentCompleteTimer;
 
     bool running = false;
     bool enabled = false;

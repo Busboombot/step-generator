@@ -58,6 +58,10 @@ struct JointSubSegment {
 
 using AxisMoves = std::array<JointSubSegment, N_AXES>;
 
+/**
+ * @brief Hold the parameters for the steps that are currently being stepped out
+ * 
+ */
 struct PhaseJoints {
 
     int seq = 0; // sequence number
@@ -65,7 +69,7 @@ struct PhaseJoints {
 
     int32_t t; // phase time in microseconds
     
-    AxisMoves moves;
+    AxisMoves moves; // One JointSubSegment per axis
 
     friend ostream &operator<<( ostream &output, const PhaseJoints &pj );
 };

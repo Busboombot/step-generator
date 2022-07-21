@@ -25,6 +25,8 @@ void stepISR(){ mainLoop.isr(); }
 
 void clearISR(){ mainLoop.clearIsr();}
 
+void clearSegmentCompleteISR(){ mainLoop.clearSegmentComplete();}
+
 volatile bool finished_phase = false;
 
 inline void Loop::isr(){
@@ -70,6 +72,17 @@ inline void Loop::clearIsr(){
   }
 
   clearTimer.end();
+}
+
+inline void Loop::signalSegmentComplete(){
+   digitalWriteFast(config.segment_complete_pin, HIGH);
+   segmentCompleteTimer.begin(clearSegmentCompleteISR,2); 
+}
+
+inline void Loop::clearSegmentComplete(){
+  if(config.segment_complete_pin > 0){
+    digitalWriteFast(config.segment_complete_pin, LOW);
+  }
 }
 
 void Loop::setup(){
@@ -149,6 +162,8 @@ void Loop::finishedPhase(){
   current_state.queue_time = planner.getQueueTime();
 
   sdp.sendDone(planner.getCurrentPhase().seq, current_state);
+  signalSegmentComplete();
+
 
   if(planner.isEmpty()){
     sdp.sendEmpty(planner.getCurrentPhase().seq, current_state);
@@ -235,6 +250,20 @@ void Loop::disable(){
   }
 }
 
+/**
+ * @brief Remove all of the segments from the queue
+ * 
+ */
+void Loop::reset(){
+  planner.clear();
+}
+
+void Loop::zero(){
+   for(const Joint &j : planner.getJoints() ){
+    getStepper(j.n).setPosition(0);
+  }
+}
+
 void Loop::setConfig(Config* config_, bool eeprom_write){
 
   // FIXME EEPROM writing was failing?
@@ -246,12 +275,21 @@ void Loop::setConfig(Config* config_, bool eeprom_write){
   config.n_axes = config_->n_axes;
   config.debug_print = config_->debug_print;
   config.debug_tick = config_->debug_tick;
-  
+  config.segment_complete_pin = config_->segment_complete_pin;
+
+  if (config.segment_complete_pin > 0){
+    pinMode(config.segment_complete_pin, OUTPUT);
+  }
+
   planner.setNJoints(config.n_axes);
 }
 
-// Configure a stepper for an axis. Creates a new StepperInterface object
-// for the axis
+/**
+ * @brief Configure a stepper for an axis. Creates a new StepperInterface object for the axis
+ * 
+ * @param as Axis configuration object
+ * @param eeprom_write If true, write positions to the eeprom. 
+ */
 void Loop::setAxisConfig(AxisConfig* as, bool eeprom_write){
   
   int pos = 0;
@@ -326,11 +364,12 @@ void Loop::printInfo(){
             "N Axes     : %d\r\n"
             "Joints     : %d\r\n"
             "Intr Delay : %d\r\n"
+            "ClrSeg Pin : %d\r\n"
             "Debug print: %d\r\n"
             "Debug tick : %d\r\n",
            planner.getQueueSize(), planner.getQueueTime(), running, enabled,
            config.n_axes,planner.getJoints().size(), config.interrupt_delay, 
-           config.debug_print, config.debug_tick) ;
+           config.segment_complete_pin,config.debug_print, config.debug_tick) ;
   
   for(const Joint &j : planner.getJoints() ){
 

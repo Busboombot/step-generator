@@ -92,6 +92,7 @@ protected:
 
     int current_phase = 0;
 
+    // Current phase that is beg stepped out?
     PhaseJoints phase_joints;
 
     int32_t queue_size=0;
@@ -148,6 +149,12 @@ public:
     const PhaseJoints&  getNextPhase();
 
     const PhaseJoints& getCurrentPhase();
+
+    void clear(){
+        while (!isEmpty()){
+            getNextPhase();
+        }
+    }
 
     bool isEmpty(){ return segments.size() == 0; }
 

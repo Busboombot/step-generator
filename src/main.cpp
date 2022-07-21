@@ -20,6 +20,10 @@ unsigned __exidx_end;
 
 Loop mainLoop(Serial);
 
+/**
+ * @brief Run-once setup
+ * 
+ */
 void setup(){
   pinMode(LED_BUILTIN, OUTPUT);
   int baud = 115200;

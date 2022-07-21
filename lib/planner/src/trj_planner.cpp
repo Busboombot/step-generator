@@ -117,6 +117,8 @@ const PhaseJoints& Planner::getNextPhase(){
         segments.front()->getPhaseJoints(phase_joints, current_phase++);
     }
 
+    // If we were working on the last phase ( decelleration ) of a segment, 
+    // then it is time to remove the whole segment. 
     if (current_phase == 3){  // 
         delete segments.front();
         segments.pop_front();
