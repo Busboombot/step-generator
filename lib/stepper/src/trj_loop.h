@@ -57,9 +57,9 @@ public:
         return state[n].step(getStepper(n));
     }
 
-    void reset();
+    void reset(int seq);
 
-    void zero();
+    void zero(int seq);
 
     void isr();
 
@@ -74,6 +74,8 @@ public:
     int getLastSegNum(){
         return last_seg_num;
     }
+
+    void printf(const char* fmt, ...);
 
 private:
 

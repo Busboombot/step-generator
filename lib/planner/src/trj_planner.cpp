@@ -62,19 +62,19 @@ void Planner::push(const Move& move){ // push to tail
         move_.move_type = Move::MoveType::relative;
     }
     
-    // Transform the move from realtive to absolute. The result is that
+    // Transform the move from relative to absolute. The result is that
     // the new position is the value of the move x position
     if(move_.move_type == Move::MoveType::absolute){
         for(unsigned int i=0; i < joints.size(); i++){
-            int32_t x = move_.x[i]  ;
             move_.x[i]  -= current_position[i]; // absolute to relative
-            current_position[i] = x; // current position is old absolute position
-        }
-    } else {  // relative
-        for(unsigned int i=0; i < joints.size(); i++){
-            current_position[i] += move_.x[i];
         }
     }
+
+    // Update the current positions
+    for(unsigned int i=0; i < joints.size(); i++){
+        current_position[i] += move_.x[i];
+    }
+
     
     Segment* last = 0;
     
