@@ -146,10 +146,6 @@ public:
   void sendEmpty(uint16_t seq, CurrentState &current_state){ 
     send((const uint8_t*)&current_state, CommandCode::EMPTY, seq, sizeof(current_state));
   }
-
-   void sendZero(uint16_t seq, CurrentState &current_state){ 
-    send((const uint8_t*)&current_state, CommandCode::ZERO, seq, sizeof(current_state));
-  }
  
   void printf(const char* fmt, ...);
 

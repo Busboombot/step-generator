@@ -147,9 +147,6 @@ void Loop::feedSteppers(){
   if (finished_phase == false and !running and planner.getQueueSize() > 0){
     if(nextPhase()){
       start();
-    } else {
-      // NextPhase returned no active axes -> no moves, so we are done. 
-      finished_phase = true;
     }
   }
 }
@@ -165,8 +162,7 @@ void Loop::finishedPhase(){
   current_state.queue_time = planner.getQueueTime();
 
   sdp.sendDone(planner.getCurrentPhase().seq, current_state);
-
-  signalSegmentComplete(); // Want the encoder message to arrive after the DONE
+  signalSegmentComplete();
 
 
   if(planner.isEmpty()){
@@ -258,37 +254,14 @@ void Loop::disable(){
  * @brief Remove all of the segments from the queue
  * 
  */
-void Loop::reset(int seq){
-
+void Loop::reset(){
   planner.clear();
-
-  current_state.queue_length = planner.getQueueSize();
-  current_state.queue_time = planner.getQueueTime();
-
-  sdp.sendEmpty(seq, current_state);
 }
 
-/**
- * @brief Set all of the positions to zero
- * 
- */
-void Loop::zero(int seq){
-
-  MoveArray moves( planner.getJoints().size());
-
-  for(const Joint &j : planner.getJoints() ){
+void Loop::zero(){
+   for(const Joint &j : planner.getJoints() ){
     getStepper(j.n).setPosition(0);
-    moves[j.n] = 0;
   }
-
-  planner.setPosition(moves);
-
-  current_state.queue_length = planner.getQueueSize();
-  current_state.queue_time = planner.getQueueTime();
-
-  sdp.sendZero(seq, current_state);
-
-
 }
 
 void Loop::setConfig(Config* config_, bool eeprom_write){
@@ -371,30 +344,14 @@ void Loop::processMove(const uint8_t* buffer_, size_t size){
 
     for (int axis = 0; axis < getConfig().n_axes; axis++){
       move.x[axis] = m->x[axis];
-
-      // Not sure these updates to planner position make any sense. 
-      /*
-      if (ph->code == CommandCode::RMOVE|| ph->code == CommandCode::JMOVE){
-        current_state.planner_positions[axis] += m->x[axis];
-      } else {
-        current_state.planner_positions[axis] = m->x[axis];
-      }
-      */
+      // FIXME! This position update will only work for relative moves
+      current_state.planner_positions[axis] += m->x[axis];
     }
     
     current_state.queue_length = planner.getQueueSize();
     current_state.queue_time = planner.getQueueTime();
 
     planner.push(move);
-}
-
-// print to the print buffer
-void Loop::printf(const char* fmt, ...){
-    va_list args;
-    va_start(args,fmt);
-    sdp.printf(fmt,args);
-    va_end(args);
-  
 }
 
 void Loop::printInfo(){

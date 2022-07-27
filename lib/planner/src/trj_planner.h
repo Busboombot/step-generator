@@ -98,8 +98,6 @@ protected:
     int32_t queue_size=0;
     int32_t queue_time=0;
 
-    // Planner's current position. The final position after all moves are complete, 
-    // Use to calculate relative move from absolute move commands
     MoveArray current_position;
 
 public:
@@ -144,10 +142,6 @@ public:
 
     MoveArray getPosition(){
         return current_position;
-    }
-
-    void setPosition(MoveArray moves){
-        current_position = moves;
     }
 
     // Return ref to an internal PhaseJoints, loaded with the parameters for
