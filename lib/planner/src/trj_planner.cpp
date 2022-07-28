@@ -83,6 +83,7 @@ void Planner::push(const Move& move){ // push to tail
     
     Segment *segment = new Segment(joints, last, move_);
   
+    
     segments.push_back(segment);
   
     queue_time += segment->getTicks();

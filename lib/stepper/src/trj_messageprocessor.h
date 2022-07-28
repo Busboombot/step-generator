@@ -3,10 +3,12 @@
 
 
 #include <functional>
+
 #include <FastCRC.h>
 #include <PacketSerial.h>
 #include "trj_ringbuffer.h"
 #include "trj_stepper.h"
+#include "trj_stepdriver.h"
 
 
 #define BUFFER_SIZE 265
@@ -61,12 +63,6 @@ struct Moves {
 }; // 8
 
 
-struct CurrentState {
-  int32_t queue_length = 0;
-  uint32_t queue_time = 0;
-  int32_t positions[N_AXES] = {0};
-  int32_t planner_positions[N_AXES] = {0};
-}; 
 
 extern CurrentState current_state;
 

@@ -5,11 +5,10 @@
 #include <chrono>
 #include <time.h>
 
-#include "trj_loop.h"
+
 #include "trj_planner.h"
 #include "trj_segment.h"
 #include "trj_stepdriver.h"
-#include "trj_steper.h"
 
 // Can't get platform.io to load this library
 // #include "FastCRC.h"
@@ -56,7 +55,6 @@ vector<Joint> getJoints(){
 }
 
 
-
 struct RunOut {
     int n = 0;
     uint32_t t = 0; // total_time
@@ -82,6 +80,14 @@ struct RunOut run_out(Planner &p, bool print = false){
     return ro;
 }
 
+
+class TestStepDriver : public StepDriver {
+
+    protected: 
+        StepInterface* newStepper(AxisConfig* as){
+            return new TestStepper(as->axis);
+        }
+};
 
 void test_low_rpm(){
     Planner p = Planner( {Joint(0, 5333, 53333)} );

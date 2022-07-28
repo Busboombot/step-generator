@@ -10,9 +10,8 @@
 #include <math.h> // rint
 #include <initializer_list> 
 
+#include "trj_planner_const.h" // For N_AXES
 #include "trj_jointss.h"
-#include "trj_stepper.h"
-
 #include "trj_util.h"
 
 using std::array;

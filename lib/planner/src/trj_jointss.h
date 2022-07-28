@@ -8,7 +8,8 @@
 #include <iomanip>
 #include <math.h> // rint
 
-#include <trj_stepper.h>
+#include "trj_planner_const.h"
+
 
 using std::cout;
 using std::endl;

@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <EEPROM.h>
+
 #include <sstream>
 #include <functional>
 #include <limits.h>
@@ -16,9 +16,8 @@
 #include "trj_segment.h"
 
 extern Loop  mainLoop;
-extern StepInterface steppers[];
 
-CurrentState current_state;
+extern CurrentState current_state;
 
 
 void stepISR(){ mainLoop.isr(); }
@@ -32,7 +31,6 @@ volatile bool finished_phase = false;
 inline void Loop::isr(){
 
     unsigned long  steps_left = 0;
-    //static bool activityToggle = true;
 
     if(finished_phase)
       return;
@@ -40,8 +38,6 @@ inline void Loop::isr(){
     clearTimer.begin(clearISR,1.55);  // 1.55 is the minimum on teensy4 == 36 cycles. 
 
     switch (config.n_axes) {
-      //case 8: steps_left += step(7);
-      //case 7: steps_left += step(6);
       case 6: steps_left += step(5);
       case 5: steps_left += step(4);
       case 4: steps_left += step(3);
@@ -61,8 +57,7 @@ inline void Loop::isr(){
 inline void Loop::clearIsr(){
   
   switch (config.n_axes) {
-    //case 8: steppers[7]->clearStep();
-    //case 7: steppers[6]->clearStep();
+
     case 6: steppers[5]->clearStep();
     case 5: steppers[4]->clearStep();
     case 4: steppers[3]->clearStep();
@@ -75,8 +70,20 @@ inline void Loop::clearIsr(){
 }
 
 inline void Loop::signalSegmentComplete(){
-   digitalWriteFast(config.segment_complete_pin, HIGH);
-   segmentCompleteTimer.begin(clearSegmentCompleteISR,2); 
+
+  for(int i = 0; i < config.n_axes; i++){
+    current_state.positions[i] = steppers[i]->getPosition();
+  }
+
+  current_state.queue_length = planner.getQueueSize();
+  current_state.queue_time = planner.getQueueTime();
+
+  sdp.sendDone(planner.getCurrentPhase().seq, current_state);
+
+  if(config.segment_complete_pin > 0){
+    digitalWriteFast(config.segment_complete_pin, HIGH);
+    segmentCompleteTimer.begin(clearSegmentCompleteISR,2); 
+  }
 }
 
 inline void Loop::clearSegmentComplete(){
@@ -86,19 +93,7 @@ inline void Loop::clearSegmentComplete(){
 }
 
 void Loop::setup(){
-
-
   return;
-  EEPROM.get(EEPROM_OFFSET, config);
-  setConfig(&config, false);
- 
-  for(int i=0; i < config.n_axes; i++){
-    EEPROM.get(EEPROM_OFFSET+sizeof(config)+(sizeof(AxisConfig)*i), axes_config[i]);
-    setAxisConfig(&axes_config[i], false);
-  }
-
-  stop();
-  
 }
 
 /* Run one iteration of the main loop
@@ -138,9 +133,15 @@ void Loop::feedSteppers(){
     return;
   }
 
-  if (finished_phase){
+  if (finished_phase){  // set in isr() when no steps remain
     stop();
-    finishedPhase();
+    signalSegmentComplete();
+
+    if(planner.isEmpty()){
+      sdp.sendEmpty(planner.getCurrentPhase().seq, current_state);
+      //disable();
+    }  
+
     finished_phase = false;
   }
 
@@ -152,24 +153,9 @@ void Loop::feedSteppers(){
 }
 
 
-void Loop::finishedPhase(){
-
-  for(int i = 0; i < config.n_axes; i++){
-    current_state.positions[i] = steppers[i]->getPosition();
-  }
-
-  current_state.queue_length = planner.getQueueSize();
-  current_state.queue_time = planner.getQueueTime();
-
-  sdp.sendDone(planner.getCurrentPhase().seq, current_state);
-  signalSegmentComplete();
 
 
-  if(planner.isEmpty()){
-    sdp.sendEmpty(planner.getCurrentPhase().seq, current_state);
-    //disable();
-  }  
-}
+
 
 bool Loop::nextPhase(){
 
@@ -211,8 +197,6 @@ void Loop::stop(){
 void Loop::setDirection(){
  
   switch (config.n_axes){
-      //case 8: steppers[7]->enable(state[7].getDirection());
-      //case 7: steppers[6]->enable(state[6].getDirection());
       case 6: steppers[5]->setDirection(state[5].getDirection());
       case 5: steppers[4]->setDirection(state[4].getDirection()); 
       case 4: steppers[3]->setDirection(state[3].getDirection()); 
@@ -225,8 +209,6 @@ void Loop::setDirection(){
 void Loop::enable(){
   enabled = true;
   switch (config.n_axes){
-      //case 8: steppers[7]->enable(state[7].getDirection());
-      //case 7: steppers[6]->enable(state[6].getDirection());
       case 6: steppers[5]->enable(state[5].getDirection());
       case 5: steppers[4]->enable(state[4].getDirection()); 
       case 4: steppers[3]->enable(state[3].getDirection()); 
@@ -239,8 +221,6 @@ void Loop::enable(){
 void Loop::disable(){
   enabled = false;
   switch (config.n_axes){
-      //case 8: steppers[7]->disable();
-      //case 7: steppers[6]->disable();
       case 6: steppers[5]->disable();
       case 5: steppers[4]->disable();
       case 4: steppers[3]->disable();
@@ -265,11 +245,6 @@ void Loop::zero(){
 }
 
 void Loop::setConfig(Config* config_, bool eeprom_write){
-
-  // FIXME EEPROM writing was failing?
-  if (false and eeprom_write){
-    EEPROM.put(EEPROM_OFFSET, *config_);
-  }
   
   config.interrupt_delay = config_->interrupt_delay;
   config.n_axes = config_->n_axes;
@@ -296,19 +271,13 @@ void Loop::setAxisConfig(AxisConfig* as, bool eeprom_write){
 
   if(as->axis < config.n_axes){
 
-    ser_printf("Config axis %d out of %d",as->axis+1, config.n_axes);
- 
-    // FIXME EEPROM writing was failing?
-    if (false and eeprom_write)
-      EEPROM.put(EEPROM_OFFSET+sizeof(Config)+(sizeof(AxisConfig)*as->axis), *as);
-
     // Clear out any old stepper instance
     if (steppers[as->axis] != 0)
       pos = steppers[as->axis]->getPosition(); // But save the position
       delete steppers[as->axis];
 
     // Then make a new one. 
-    steppers[as->axis] = new StepInterface(as->axis, as->step_pin, as->direction_pin, as->enable_pin);
+    steppers[as->axis] = new StepDirectionStepper(as->axis, as->step_pin, as->direction_pin, as->enable_pin);
 
     steppers[as->axis]->setPosition(pos);
 
@@ -380,13 +349,13 @@ void Loop::printInfo(){
     StepInterface &stepper = getStepper(j.n);
 
     sdp.printf("-- Axis %d \r\n"
-            "Step Pin   : %d\r\n"
-            "Dir Pin    : %d\r\n"
-            "Enable Pin : %d\r\n"
+            //"Step Pin   : %d\r\n"
+            //"Dir Pin    : %d\r\n"
+            //"Enable Pin : %d\r\n"
             "A Max      : %d\r\n"
             "V Max      : %d\r\n"
             "Position   : %d\r\n",
-            j.n, stepper.stepPin, stepper.directionPin, stepper.enablePin, 
+            j.n, //stepper.stepPin, stepper.directionPin, stepper.enablePin, 
             static_cast<int>(j.a_max), static_cast<int>(j.v_max),
             stepper.getPosition()); 
   }

@@ -1,5 +1,8 @@
 #include "trj_stepdriver.h"
 
+
+CurrentState current_state;
+
 /**
  * @brief Construct a new Stepper class
  * 
@@ -7,7 +10,8 @@
  * @return StepInterface* 
  */
 StepInterface* newStepper(AxisConfig* as){
-  return new StepDirectionStepper(as->axis, as->step_pin, as->direction_pin, as->enable_pin);
+  return new TestStepper(as->axis);
+  //return new StepDirectionStepper(as->axis, as->step_pin, as->direction_pin, as->enable_pin);
 }
 
 void StepDriver::setAxisConfig(AxisConfig* as){
@@ -77,35 +81,20 @@ int StepDriver::stepAll(){
     return steps_left;
 }
 
-void StepDriver::pushMoves(CommandCode code, int seq, Moves *m){
+void StepDriver::pushMoves(Move::MoveType move_type, int seq, uint32_t segment_time,  int32_t x[]){
 
   
-    Move move(n_axes, seq, m->segment_time, 0);
+    Move move(n_axes, seq, segment_time, 0);
 
-    switch(code){
-        case CommandCode::RMOVE:
-     
-        move.move_type = Move::MoveType::relative;
-        break;
-        
-        case CommandCode::AMOVE:
-        move.move_type = Move::MoveType::absolute;
-        break;
-        
-        case CommandCode::JMOVE:
-        move.move_type = Move::MoveType::jog;
-        break;
-        
-        default: ; 
-    }
-
+    move.move_type = move_type;
+    
     for (int axis = 0; axis < n_axes; axis++){
-      move.x[axis] = m->x[axis];
+      move.x[axis] = x[axis];
 
-      if(code == CommandCode::AMOVE){
-        current_state.planner_positions[axis] = m->x[axis];
+      if(move_type == Move::MoveType::absolute){
+        current_state.planner_positions[axis] = x[axis];
       } else {
-        current_state.planner_positions[axis] += m->x[axis];
+        current_state.planner_positions[axis] += x[axis];
       }
     }
     
@@ -145,7 +134,7 @@ void StepDriver::update(){
           const JointSubSegment &jss = pj.moves[axis];
           if(jss.x != 0){
             active_axes++;
-            state[axis].setParams(jss.t, jss.v_0, jss.v_1, jss.x); // Omits config for INTERRUPT_DELAY
+            state[axis].setParams(jss.t, jss.v_0, jss.v_1, jss.x, period); // Omits config for INTERRUPT_DELAY
           } else {
             state[axis].setParams(0, 0, 0, 0, 0);
           }

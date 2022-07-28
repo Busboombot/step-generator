@@ -22,9 +22,7 @@ class Loop {
 
 public:
 
-    Loop(Stream& serial) :  sdp(serial, *this)  {
-
-    }
+    Loop(Stream& serial) :  sdp(serial, *this)  {}
 
     void setup();
 
@@ -53,9 +51,7 @@ public:
 
     inline StepperState& getState(uint8_t n){ return state[n]; }
 
-    inline int step(uint8_t n){   
-        return state[n].step(getStepper(n));
-    }
+    inline int step(uint8_t n){   return state[n].step(getStepper(n)); }
 
     void reset();
 
@@ -106,11 +102,12 @@ private:
 
     void feedSteppers();
 
+    void feedSteppers2();
+
+
     bool isEmpty(){ return planner.isEmpty(); }
 
     bool nextPhase();
-
-    void finishedPhase();
 
 
 
