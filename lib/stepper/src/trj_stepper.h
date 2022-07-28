@@ -12,11 +12,10 @@
 #include "trj_stepdriver.h"
 
 
-class StepDirectionStepper : public StepInterface {
+class StepDirectionStepper : public Stepper {
     
 protected:
     
-    uint8_t axis_n;
     bool pinState = true;
     
     uint8_t stepPin;
@@ -35,7 +34,9 @@ protected:
 public:
     
     inline StepDirectionStepper(uint8_t axis_n, uint8_t stepPin, uint8_t directionPin, 
-     uint8_t enablePin): axis_n(axis_n), stepPin(stepPin), directionPin(directionPin), enablePin(enablePin) {
+     uint8_t enablePin): 
+        Stepper(axis_n),
+        stepPin(stepPin), directionPin(directionPin), enablePin(enablePin) {
         pinMode(stepPin, OUTPUT);
         pinMode(directionPin, OUTPUT);
         pinMode(enablePin, OUTPUT); // RESET signal doesn't work

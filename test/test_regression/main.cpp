@@ -81,13 +81,6 @@ struct RunOut run_out(Planner &p, bool print = false){
 }
 
 
-class TestStepDriver : public StepDriver {
-
-    protected: 
-        StepInterface* newStepper(AxisConfig* as){
-            return new TestStepper(as->axis);
-        }
-};
 
 void test_low_rpm(){
     Planner p = Planner( {Joint(0, 5333, 53333)} );
@@ -105,6 +98,19 @@ void test_low_rpm(){
 }
 
 
+void test_driver(){
+
+    StepDriver sd = StepDriver(5);
+
+    AxisConfig as = {};
+    as.axis = 0;
+    as.v_max = 5000;
+    as.a_max = 50000;
+
+    sd.setAxisConfig(&as);
+
+
+}
 
 
 int main(){
@@ -112,6 +118,7 @@ int main(){
     UNITY_BEGIN();   
 
     RUN_TEST(test_low_rpm);
+    RUN_TEST(test_driver);
    
     UNITY_END();
     return 0;

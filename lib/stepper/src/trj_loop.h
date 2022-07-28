@@ -31,7 +31,7 @@ public:
     // Copy in a new config
     void setConfig(Config* config, bool eeprom_write=true);
 
-    void setAxisConfig(AxisConfig* config, bool eeprom_write=true);
+    void setAxisConfig(AxisConfig* config);
 
     void printInfo();
 
@@ -47,7 +47,7 @@ public:
 
     inline Config& getConfig(){ return config;}
 
-    inline StepInterface& getStepper(uint8_t n){ return *steppers[n]; }
+    inline Stepper& getStepper(uint8_t n){ return *steppers[n]; }
 
     inline StepperState& getState(uint8_t n){ return state[n]; }
 
@@ -92,7 +92,7 @@ private:
   
     StepperState state[N_AXES];
 
-    StepInterface* steppers[N_AXES] = {0,0,0,0,0,0};
+    Stepper* steppers[N_AXES] = {0,0,0,0,0,0};
     
     int last_seg_num = 0;
 

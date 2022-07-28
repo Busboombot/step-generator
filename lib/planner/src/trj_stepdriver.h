@@ -11,7 +11,7 @@ typedef enum
     CCW = -1,  ///< Clockwise
     STOP = 0,  ///< Clockwise
     CW  = 1   ///< Counter-Clockwise
-    
+
 } Direction;
 
 
@@ -32,6 +32,11 @@ struct AxisConfig {
     uint32_t a_max;
 };
 
+/**
+ * @brief Track the current conditions for the queue and positions, as of the time
+ * of ACKs and DONE messages. 
+ * 
+ */
 struct CurrentState {
   int32_t queue_length = 0;
   uint32_t queue_time = 0;
@@ -41,49 +46,29 @@ struct CurrentState {
 
 
 
-class StepInterface {
+class Stepper {
 
 protected:
-    StepInterface(){};
-    
-public:
-    
-    virtual ~StepInterface(){};
-    virtual void writeStep() = 0;
-    virtual void clearStep();
-    virtual void toggle();
-    virtual void enable();
-    virtual void enable(Direction dir);
-    virtual void disable();
-    virtual void setDirection(Direction dir);
-    virtual int getPosition();
-    virtual void setPosition(int64_t v);
-     
-};
-
-class TestStepper : public StepInterface {
-
-
-public:
 
     int8_t axis;
     int8_t direction = 0;
     int32_t position = 0;
+    
+public:
 
-    TestStepper(int8_t axis) : axis(axis){}
-
+   
+    Stepper(int8_t axis) : axis(axis){};
     void writeStep(){ position += direction;}
     void clearStep(){};
-    void toggle(){}
-    void enable(){}
+    void toggle(){};
+    void enable(){};
     void enable(Direction dir){setDirection(dir);enable();}
     void disable() { setDirection(STOP); }
-    void setDirection(Direction dir);
+    void setDirection(Direction dir){direction = dir;};
     int getPosition(){return position;};
     void setPosition(int64_t v){position=v;};
      
 };
-
 
 
 class StepperState {
@@ -153,7 +138,7 @@ public:
     }
    
 
-    inline bool step(StepInterface& stepper){
+    inline bool step(Stepper& stepper){
 
 
         if (stepsLeft == 0){
@@ -200,6 +185,7 @@ class StepDriver {
 public:
 
     StepDriver(uint16_t period) :  period(period) {}
+    ~StepDriver(){}
 
     void stop() { running = false; }
 
@@ -211,7 +197,7 @@ public:
 
     void setAxisConfig(AxisConfig* as);
 
-    inline StepInterface& getStepper(uint8_t n){ return *steppers[n]; }
+    inline Stepper& getStepper(uint8_t n){ return *steppers[n]; }
 
     inline StepperState& getState(uint8_t n){ return state[n]; }
 
@@ -239,9 +225,12 @@ protected:
   
     StepperState state[N_AXES];
 
-    StepInterface* steppers[N_AXES] = {0,0,0,0,0,0};
+    Stepper* steppers[N_AXES] = {0,0,0,0,0,0};
 
-    StepInterface* newStepper(AxisConfig* as);
+    Stepper* newStepper(AxisConfig* as){
+        return new Stepper(as->axis);
+        //return new StepDirectionStepper(as->axis, as->step_pin, as->direction_pin, as->enable_pin);
+    }
 
     void feedSteppers();
 

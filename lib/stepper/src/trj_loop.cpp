@@ -265,7 +265,7 @@ void Loop::setConfig(Config* config_, bool eeprom_write){
  * @param as Axis configuration object
  * @param eeprom_write If true, write positions to the eeprom. 
  */
-void Loop::setAxisConfig(AxisConfig* as, bool eeprom_write){
+void Loop::setAxisConfig(AxisConfig* as){
   
   int pos = 0;
 
@@ -346,7 +346,7 @@ void Loop::printInfo(){
       continue;
     }
 
-    StepInterface &stepper = getStepper(j.n);
+    Stepper &stepper = getStepper(j.n);
 
     sdp.printf("-- Axis %d \r\n"
             //"Step Pin   : %d\r\n"

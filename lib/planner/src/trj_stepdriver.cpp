@@ -3,16 +3,6 @@
 
 CurrentState current_state;
 
-/**
- * @brief Construct a new Stepper class
- * 
- * @param as 
- * @return StepInterface* 
- */
-StepInterface* newStepper(AxisConfig* as){
-  return new TestStepper(as->axis);
-  //return new StepDirectionStepper(as->axis, as->step_pin, as->direction_pin, as->enable_pin);
-}
 
 void StepDriver::setAxisConfig(AxisConfig* as){
   

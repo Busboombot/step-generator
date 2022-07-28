@@ -12,7 +12,7 @@
 #include "trj_stepper.h"
 
 
-class StepInterface {
+class Stepper {
     
 protected:
     
@@ -31,14 +31,14 @@ protected:
 
 public:
     
-    inline StepInterface(uint8_t axis_n, uint8_t stepPin, uint8_t directionPin, 
+    inline Stepper(uint8_t axis_n, uint8_t stepPin, uint8_t directionPin, 
      uint8_t enablePin): axis_n(axis_n), stepPin(stepPin), directionPin(directionPin), enablePin(enablePin) {
         pinMode(stepPin, OUTPUT);
         pinMode(directionPin, OUTPUT);
         pinMode(enablePin, OUTPUT);
     }
     
-    virtual ~StepInterface(){}
+    virtual ~Stepper(){}
     
     virtual inline void writeStep(){
         digitalWriteFast(stepPin, HIGH);
@@ -95,7 +95,7 @@ public:
 
 // A version of the StepInterface that outputs quadrature, useful
 // for testing encoder readers. 
-class QuadratureInterface : public StepInterface {
+class QuadratureInterface : public Stepper {
 
     protected:
 
@@ -108,7 +108,7 @@ class QuadratureInterface : public StepInterface {
     public:
         
         QuadratureInterface(uint8_t axis_n, uint8_t stepPin, uint8_t directionPin, uint8_t enablePin):
-            StepInterface( axis_n,  stepPin,  directionPin,  enablePin){}
+            Stepper( axis_n,  stepPin,  directionPin,  enablePin){}
         
          ~QuadratureInterface(){}
         
