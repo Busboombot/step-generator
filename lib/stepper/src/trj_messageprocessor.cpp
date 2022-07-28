@@ -2,7 +2,7 @@
 #include<stdarg.h>
 
 #include "trj_messageprocessor.h"
-#include "trj_stepper.h"
+#include "trj_sdstepper.h"
 #include "trj_config.h"
 #include "trj_loop.h"
 #include "trj_debug.h"

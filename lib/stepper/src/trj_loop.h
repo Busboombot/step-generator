@@ -8,7 +8,7 @@
 
 #include "trj_messageprocessor.h"
 #include "trj_fastset.h"
-#include "trj_stepper.h"
+#include "trj_sdstepper.h"
 #include "trj_ringbuffer.h"
 #include "trj_bithacks.h"
 #include "trj_config.h"
@@ -22,47 +22,32 @@ class Loop {
 
 public:
 
-    Loop(Stream& serial) :  sdp(serial, *this)  {}
+    Loop(Stream& serial, unsigned int period) :  sdp(serial, *this), sd(StepDriver(period))  {}
 
     void setup();
 
     void loopOnce();
 
-    // Copy in a new config
-    void setConfig(Config* config, bool eeprom_write=true);
+    void setConfig(Config* config);
 
     void setAxisConfig(AxisConfig* config);
-
-    void printInfo();
 
     void stop();
 
     void start();
 
-    void enable();
-
-    void setDirection();
-
-    void disable();
-
     inline Config& getConfig(){ return config;}
 
-    inline Stepper& getStepper(uint8_t n){ return *steppers[n]; }
-
-    inline StepperState& getState(uint8_t n){ return state[n]; }
-
-    inline int step(uint8_t n){   return state[n].step(getStepper(n)); }
+    inline StepDirectionStepper *getStepper(uint8_t n){ return steppers[n]; }
 
     void reset();
 
     void zero();
 
-    void isr();
-
-    void clearIsr();
+    void enable() {}
+    void disable() {}
 
     void signalSegmentComplete();
-
     void clearSegmentComplete();
 
     void processMove(const uint8_t* buffer_, size_t size);
@@ -71,44 +56,27 @@ public:
         return last_seg_num;
     }
 
+    bool isEmpty(){ return sd.isEmpty(); }
+
+    void printInfo();
+
 private:
 
     Config config;
     AxisConfig axes_config[N_AXES];
 
+    IntervalTimer segmentCompleteTimer; // Clears the segment complete signal pin. 
+
     MessageProcessor sdp;
-    
-    IntervalTimer setTimer;
-    IntervalTimer clearTimer;
-    IntervalTimer segmentCompleteTimer;
 
-    bool running = false;
-    bool enabled = false;
-    bool inPhase = false;
+    StepDirectionStepper *steppers[N_AXES];
 
-    Planner planner;
- 
-    uint32_t now;
-  
-    StepperState state[N_AXES];
+    StepDriver sd;
 
-    Stepper* steppers[N_AXES] = {0,0,0,0,0,0};
+    CurrentState current_state;
     
     int last_seg_num = 0;
-
-    void loopTick();
-
-    void runSerial();
-
-    void feedSteppers();
-
-    void feedSteppers2();
-
-
-    bool isEmpty(){ return planner.isEmpty(); }
-
-    bool nextPhase();
-
+    bool running = false;
 
 
 };

@@ -9,6 +9,7 @@
 #include "trj_planner.h"
 #include "trj_segment.h"
 #include "trj_stepdriver.h"
+#include "trj_util.h"
 
 // Can't get platform.io to load this library
 // #include "FastCRC.h"
@@ -97,18 +98,29 @@ void test_low_rpm(){
 
 }
 
-
 void test_driver(){
 
-    StepDriver sd = StepDriver(5);
+    StepDriver sd = StepDriver(1);
 
-    AxisConfig as = {};
-    as.axis = 0;
-    as.v_max = 5000;
-    as.a_max = 50000;
+    int v_max = 5000;
+    int a_max = 50000;
 
-    sd.setAxisConfig(&as);
+    int x = 6400;
 
+    sd.setAxisConfig(0, v_max, a_max);
+
+    sd.push(Move(0,1e5, Move::MoveType::relative, {x}));
+    sd.push(Move(0,1e5, Move::MoveType::relative, {-x}));
+
+    while(!sd.getPlanner().isEmpty()){
+
+        if(sd.update() == 0){
+            cout << "T=" << sd.sincePhaseStart() << endl;
+        }
+
+    }
+    
+    sd.disable();
 
 }
 

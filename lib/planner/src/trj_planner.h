@@ -118,8 +118,6 @@ public:
     // Add a move, processing it into a Segment
     void push(const Move& move);
 
-    //void push(MoveArray x);
-
     void push(int seq, int t, MoveArray x);
 
 
@@ -127,21 +125,13 @@ public:
         return *segments[i];
     }
 
-    int getSegmentsSize(){
-        return segments.size();
-    }
+    int getSegmentsSize(){  return segments.size();}
 
-    uint32_t getQueueTime(){
-        return queue_time;
-    }
+    uint32_t getQueueTime(){ return queue_time;  }
 
-    uint32_t getQueueSize(){
-        return  queue_size;
-    }
+    uint32_t getQueueSize(){ return  queue_size; }
 
-    MoveArray getPosition(){
-        return current_position;
-    }
+    MoveArray getPosition(){ return current_position; }
 
     // Return ref to an internal PhaseJoints, loaded with the parameters for
     // the current phase of a give axis. 

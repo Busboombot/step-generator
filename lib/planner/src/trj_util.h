@@ -5,6 +5,14 @@
 #include <iomanip>
 #include <cstdint> 
 #include <math.h> 
+#include <chrono>
+
+typedef std::chrono::milliseconds ms;
+typedef std::chrono::microseconds us;
+typedef std::chrono::steady_clock steadyClock;
+typedef std::chrono::duration<float, std::nano> duration;
+
+double usince(steadyClock::time_point start);
 
 extern int here_count;
 #define HERE(x) std::cout << "!!!HERE!!! " << x << " " << here_count++ << std::endl;

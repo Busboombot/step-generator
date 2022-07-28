@@ -9,71 +9,24 @@
 #include "trj_loop.h"
 #include "trj_messageprocessor.h"
 #include "trj_fastset.h"
-#include "trj_stepper.h"
+#include "trj_sdstepper.h"
 #include "trj_ringbuffer.h"
 #include "trj_bithacks.h"
 #include "trj_config.h"
 #include "trj_segment.h"
+#include "trj_debug.h"
 
 extern Loop  mainLoop;
 
-extern CurrentState current_state;
-
-
-void stepISR(){ mainLoop.isr(); }
-
-void clearISR(){ mainLoop.clearIsr();}
-
 void clearSegmentCompleteISR(){ mainLoop.clearSegmentComplete();}
-
-volatile bool finished_phase = false;
-
-inline void Loop::isr(){
-
-    unsigned long  steps_left = 0;
-
-    if(finished_phase)
-      return;
-
-    clearTimer.begin(clearISR,1.55);  // 1.55 is the minimum on teensy4 == 36 cycles. 
-
-    switch (config.n_axes) {
-      case 6: steps_left += step(5);
-      case 5: steps_left += step(4);
-      case 4: steps_left += step(3);
-      case 3: steps_left += step(2);
-      case 2: steps_left += step(1);
-      case 1: steps_left += step(0);
-      case 0: ;
-    }
-
-    if (steps_left == 0){
-      //All of the axes have finished so clear out the message 
-      setTimer.end();
-      finished_phase = true;
-    } 
-}
-
-inline void Loop::clearIsr(){
-  
-  switch (config.n_axes) {
-
-    case 6: steppers[5]->clearStep();
-    case 5: steppers[4]->clearStep();
-    case 4: steppers[3]->clearStep();
-    case 3: steppers[2]->clearStep();
-    case 2: steppers[1]->clearStep();
-    case 1: steppers[0]->clearStep();
-  }
-
-  clearTimer.end();
-}
 
 inline void Loop::signalSegmentComplete(){
 
   for(int i = 0; i < config.n_axes; i++){
-    current_state.positions[i] = steppers[i]->getPosition();
+    current_state.positions[i] = sd.getState(i).getPosition();
   }
+
+  auto& planner = sd.getPlanner();
 
   current_state.queue_length = planner.getQueueSize();
   current_state.queue_time = planner.getQueueTime();
@@ -99,14 +52,10 @@ void Loop::setup(){
 /* Run one iteration of the main loop
 */
 void Loop::loopOnce(){
-    loopTick(); // Blink the LED and toggle a debugging pin, to show we're not crashed. 
-    runSerial(); // Get serial data and update queues 
-    feedSteppers(); // Start stepper ISRs, if there is data. 
-}
+    // Blink the LED and toggle a debugging pin, to show we're not crashed. 
+    
+    
 
-/* Display operaton status on the builtin LED
-*/
-void Loop::loopTick()    {
     static unsigned long last = millis();
     static bool ledToggle = true;
     
@@ -116,135 +65,35 @@ void Loop::loopTick()    {
       last = millis();
     }
 
-}
-
-void Loop::runSerial(){
-    // Load a byte from the serial port and possibly process
-    // add a completed message to the queue. 
-   
-    sdp.update(); 
-}
-
-/* Update the steppers step and direction 
-*/
-void Loop::feedSteppers(){
-
-  if (!enabled){
-    return;
-  }
-
-  if (finished_phase){  // set in isr() when no steps remain
-    stop();
-    signalSegmentComplete();
-
-    if(planner.isEmpty()){
-      sdp.sendEmpty(planner.getCurrentPhase().seq, current_state);
-      //disable();
-    }  
-
-    finished_phase = false;
-  }
-
-  if (finished_phase == false and !running and planner.getQueueSize() > 0){
-    if(nextPhase()){
-      start();
-    }
-  }
-}
-
-
-
-
-
-
-bool Loop::nextPhase(){
-
-  if(isEmpty()){
-    return false;
-  }
-
-  const PhaseJoints&  pj = planner.getNextPhase();
-
-  int active_axes = 0;
-
-  for (int axis = 0; axis < getConfig().n_axes; axis++){
-    const JointSubSegment &jss = pj.moves[axis];
-    if(jss.x != 0){
-      active_axes++;
-      state[axis].setParams(jss.t, jss.v_0, jss.v_1, jss.x, config.interrupt_delay);
-    } else {
-      state[axis].setParams(0, 0, 0, 0, 0);
-    }
-  }
-
-  return active_axes > 0;
+    sdp.update();  // Get serial data and update queues 
+    
+    sd.update();
 }
 
 
 // Start the timers, if there are segments available. 
 void Loop::start(){ 
-    running = true;
-    setDirection();
-    setTimer.begin( stepISR, config.interrupt_delay);
-    
+  running = true;
 }
 
 void Loop::stop(){ 
   running = false;
-  setTimer.end();
 }
 
-void Loop::setDirection(){
- 
-  switch (config.n_axes){
-      case 6: steppers[5]->setDirection(state[5].getDirection());
-      case 5: steppers[4]->setDirection(state[4].getDirection()); 
-      case 4: steppers[3]->setDirection(state[3].getDirection()); 
-      case 3: steppers[2]->setDirection(state[2].getDirection()); 
-      case 2: steppers[1]->setDirection(state[1].getDirection());
-      case 1: steppers[0]->setDirection(state[0].getDirection()); 
-  }
-}
-
-void Loop::enable(){
-  enabled = true;
-  switch (config.n_axes){
-      case 6: steppers[5]->enable(state[5].getDirection());
-      case 5: steppers[4]->enable(state[4].getDirection()); 
-      case 4: steppers[3]->enable(state[3].getDirection()); 
-      case 3: steppers[2]->enable(state[2].getDirection()); 
-      case 2: steppers[1]->enable(state[1].getDirection());
-      case 1: steppers[0]->enable(state[0].getDirection()); 
-  }
-}
-
-void Loop::disable(){
-  enabled = false;
-  switch (config.n_axes){
-      case 6: steppers[5]->disable();
-      case 5: steppers[4]->disable();
-      case 4: steppers[3]->disable();
-      case 3: steppers[2]->disable();
-      case 2: steppers[1]->disable();
-      case 1: steppers[0]->disable();
-  }
-}
 
 /**
  * @brief Remove all of the segments from the queue
  * 
  */
 void Loop::reset(){
-  planner.clear();
+  sd.clear();
 }
 
 void Loop::zero(){
-   for(const Joint &j : planner.getJoints() ){
-    getStepper(j.n).setPosition(0);
-  }
+  sd.zero();
 }
 
-void Loop::setConfig(Config* config_, bool eeprom_write){
+void Loop::setConfig(Config* config_){
   
   config.interrupt_delay = config_->interrupt_delay;
   config.n_axes = config_->n_axes;
@@ -256,7 +105,7 @@ void Loop::setConfig(Config* config_, bool eeprom_write){
     pinMode(config.segment_complete_pin, OUTPUT);
   }
 
-  planner.setNJoints(config.n_axes);
+  sd.setNAxes(config.n_axes);
 }
 
 /**
@@ -267,23 +116,20 @@ void Loop::setConfig(Config* config_, bool eeprom_write){
  */
 void Loop::setAxisConfig(AxisConfig* as){
   
-  int pos = 0;
-
+  
   if(as->axis < config.n_axes){
-
-    // Clear out any old stepper instance
-    if (steppers[as->axis] != 0)
-      pos = steppers[as->axis]->getPosition(); // But save the position
+    sd.setAxisConfig(as->axis, as->v_max, as->a_max);
+    if ( steppers[as->axis] != nullptr){
       delete steppers[as->axis];
-
-    // Then make a new one. 
-    steppers[as->axis] = new StepDirectionStepper(as->axis, as->step_pin, as->direction_pin, as->enable_pin);
-
-    steppers[as->axis]->setPosition(pos);
-
-    Joint joint(as->axis,static_cast< float >(as->v_max), static_cast< float >(as->a_max));
-    planner.setJoint(joint);
+    }
+    steppers[as->axis] = new StepDirectionStepper(as->axis,as->step_pin,as->direction_pin,as->enable_pin);
+  
+    sd.setStepper(as->axis, steppers[as->axis]);
+  
+    axes_config[as->axis] = *as;
   }
+
+  
 }
 
 // Turn a move command into a move and add it to the planner
@@ -317,26 +163,28 @@ void Loop::processMove(const uint8_t* buffer_, size_t size){
       current_state.planner_positions[axis] += m->x[axis];
     }
     
+    auto &planner = sd.getPlanner();
     current_state.queue_length = planner.getQueueSize();
     current_state.queue_time = planner.getQueueTime();
 
-    planner.push(move);
+    sd.push(move);
 }
 
 void Loop::printInfo(){
+
+  auto& planner = sd.getPlanner();
 
   sdp.printf("===========\n"
             "Queue Size : %d\r\n"
             "Queue Time : %d\r\n"
             "Running    : %d\r\n"
-            "Enabled    : %d\r\n"
             "N Axes     : %d\r\n"
             "Joints     : %d\r\n"
             "Intr Delay : %d\r\n"
             "ClrSeg Pin : %d\r\n"
             "Debug print: %d\r\n"
             "Debug tick : %d\r\n",
-           planner.getQueueSize(), planner.getQueueTime(), running, enabled,
+           planner.getQueueSize(), planner.getQueueTime(), running, 
            config.n_axes,planner.getJoints().size(), config.interrupt_delay, 
            config.segment_complete_pin,config.debug_print, config.debug_tick) ;
   
@@ -346,23 +194,23 @@ void Loop::printInfo(){
       continue;
     }
 
-    Stepper &stepper = getStepper(j.n);
+    AxisConfig as = axes_config[j.n];
+    StepperState &state = sd.getState(j.n);
 
     sdp.printf("-- Axis %d \r\n"
-            //"Step Pin   : %d\r\n"
-            //"Dir Pin    : %d\r\n"
-            //"Enable Pin : %d\r\n"
-            "A Max      : %d\r\n"
-            "V Max      : %d\r\n"
+            "SDE        : %d %d %d\r\n"
+            "A V Max    : %d %d\r\n"
             "Position   : %d\r\n",
-            j.n, //stepper.stepPin, stepper.directionPin, stepper.enablePin, 
+            j.n, as.step_pin, as.direction_pin, as.enable_pin, 
             static_cast<int>(j.a_max), static_cast<int>(j.v_max),
-            stepper.getPosition()); 
+            state.getPosition()); 
   }
-
+  
+  return;
+  
   for(const Segment *s : planner.getSegments()){
     stringstream ss;
-    ss << *s << '\0';
+    ss << *s << "\r\n\0";
     sdp.sendMessage(ss.str().c_str());
    }
 

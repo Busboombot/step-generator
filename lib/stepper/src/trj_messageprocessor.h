@@ -7,7 +7,7 @@
 #include <FastCRC.h>
 #include <PacketSerial.h>
 #include "trj_ringbuffer.h"
-#include "trj_stepper.h"
+#include "trj_sdstepper.h"
 #include "trj_stepdriver.h"
 
 
@@ -33,7 +33,6 @@ enum class CommandCode : uint8_t {
   ZERO  =   24,  // Zero positions
   CONFIG =  25, // Reset the configuration
   AXES =    26, // Configure an axis
-
 
 
   MESSAGE = 91,  // Payload is a message; the next packet is text

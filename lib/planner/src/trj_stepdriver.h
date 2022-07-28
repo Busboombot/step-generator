@@ -5,6 +5,8 @@
 #include "trj_jointss.h"
 #include "trj_planner_const.h" // For N_AXES
 #include "trj_planner.h"
+#include "trj_util.h"
+
 
 typedef enum
 {
@@ -18,19 +20,6 @@ typedef enum
 // 2,000 rpm for a 1.8deg stepper is 400,000 steps per min, 7K steps 
 // per sec. For a 10 ustep driver, 70KHz step pulse. 
 
-#define TIMEBASE 1000000.0 // Microseconds
-
-// Configuration record for one axis
-// 8 Bytes
-struct AxisConfig {
-
-    uint8_t axis;           // Axis number
-    uint8_t step_pin;       // Step output, or quadture b
-    uint8_t direction_pin;  // Direction output, or quadrature b
-    uint8_t enable_pin;
-    uint32_t v_max;
-    uint32_t a_max;
-};
 
 /**
  * @brief Track the current conditions for the queue and positions, as of the time
@@ -45,31 +34,27 @@ struct CurrentState {
 }; 
 
 
-
 class Stepper {
 
 protected:
 
     int8_t axis;
-    int8_t direction = 0;
-    int32_t position = 0;
-    
+    bool enabled = false;
+    Direction direction = Direction::STOP;
+     
 public:
 
-   
-    Stepper(int8_t axis) : axis(axis){};
-    void writeStep(){ position += direction;}
+    Stepper() : axis(0), enabled(false){};
+    Stepper(int8_t axis) : axis(axis), enabled(false){};
+    void writeStep(){ }
     void clearStep(){};
     void toggle(){};
-    void enable(){};
+    void enable(){enabled = true;};
     void enable(Direction dir){setDirection(dir);enable();}
-    void disable() { setDirection(STOP); }
+    void disable() { setDirection(STOP); enabled = false;}
     void setDirection(Direction dir){direction = dir;};
-    int getPosition(){return position;};
-    void setPosition(int64_t v){position=v;};
-     
-};
 
+};
 
 class StepperState {
     
@@ -77,6 +62,9 @@ protected:
 
     Direction direction=STOP; 
     uint32_t  stepsLeft=0;
+    long position = 0;
+
+    int period; 
 
     float delay_counter;
     float delay;
@@ -87,84 +75,28 @@ protected:
     float t_s; // segment time, in sections
     float v_i; // Initial velocity
 
-    int period; 
 
 public:
 
     StepperState() {}
     
-    StepperState(uint32_t segment_time, uint32_t v0, uint32_t v1, int32_t x, int32_t period) :period(period) {
-        setParams(segment_time, v0, v1, x, period);
-    }
     
-    inline uint32_t getStepsLeft(){
-        return stepsLeft;
-    }
+    inline uint32_t getStepsLeft(){ return stepsLeft;}
     
-    inline int getVelocity(){
-        return v;
-    }
+    inline int getVelocity(){ return v;}
     
     inline Direction getDirection() { return direction; }
-    
-    inline void setParams(uint32_t segment_time, uint32_t v0, uint32_t v1, int32_t x, int32_t period){
 
-        if (x > 0){
-            direction = CW;
-        } else if (x < 0){
-            direction = CCW;
-        } else {
-            direction = STOP;
-        }
-        t = 0; // cumulative time
-        delay = 0;
-        delay_counter = 0;
+    inline long getPosition(){ return position; }
+
+    inline void setPosition(long p){ position = p; }
     
-        if(v1 + v0 != 0 and abs(x) != 0){
-            stepsLeft = abs(x);
-            // This is the Dave Austin algorithm, via the AccelStepper arduino library. 
-            t_s =  fabs(2.0 * ((float)x)) / ( ((float)v1) + ((float)v0 ) );
-            v_i = (float)v0;
-            a = ((float)v1-(float)v0) / t_s;
-        } else {
-            stepsLeft = 0;
-            t_s = 0;
-            v_i = 0;
-            a = 0;
-        }
-        
-        delay_inc = ((float)period)/((float)TIMEBASE);
-        
-    }
+    void setParams(uint32_t segment_time, uint32_t v0, uint32_t v1, int32_t x, int period);
+
+    int step(Stepper *stepper);
+
    
 
-    inline bool step(Stepper& stepper){
-
-
-        if (stepsLeft == 0){
-            return 0;
-        }
-
-        if (delay_counter >= delay){
-
-            delay_counter -= delay;
-            stepsLeft--;
-            stepper.writeStep();
-        }
-
-        v = a * t + v_i;
-
-        if(v != 0){
-            delay = 1.0/v;
-        } else {
-            delay = 0;
-        }
-        delay_counter += delay_inc;
-        t += delay_inc;
-
-        return stepsLeft;
-    }
-        
 };
 
 class SubSegment {
@@ -175,16 +107,15 @@ public:
     uint32_t lastTime;
     StepperState axes[N_AXES];
 public:
-    SubSegment() {
-
-    }
+    SubSegment() {}
 };
+
 
 class StepDriver {
 
 public:
 
-    StepDriver(uint16_t period) :  period(period) {}
+    StepDriver(uint16_t period) :  period(period){}
     ~StepDriver(){}
 
     void stop() { running = false; }
@@ -195,48 +126,69 @@ public:
 
     void disable();
 
-    void setAxisConfig(AxisConfig* as);
+    void setAxisConfig(uint8_t axis, unsigned int v_max, unsigned int a_max);
 
-    inline Stepper& getStepper(uint8_t n){ return *steppers[n]; }
+    void setStepper(uint8_t axis, Stepper* stepper){steppers[axis] = stepper;}
 
     inline StepperState& getState(uint8_t n){ return state[n]; }
+    inline Planner& getPlanner(){ return planner;}
 
-    int stepAll();
+    inline int step(uint8_t n){ return state[n].step(steppers[n]); }
 
-    inline int step(uint8_t n){   return state[n].step(getStepper(n)); }
+    inline void clear(uint8_t n){
+        if (steppers[n] != 0){
+            steppers[n]->clearStep(); 
+        }
+    }
 
-    void update();
+    int update(); // Run all of the stepping and state updates
 
-    void pushMoves(Move::MoveType move_type, int seq, uint32_t segment_time,  int32_t x[N_AXES]);
+    int loadNextPhase();
+
+    bool isEmpty(){ return planner.isEmpty(); }
+
+    void push(Move m);
+
+
+    double sincePhaseStart();
+
+    void clear(){planner.clear();}
+
+    void zero(){
+        for (StepperState ss : state){
+            ss.setPosition(0);
+        }
+    }
+
+    void setNAxes(int n){ n_axes = n; }
+
+
 
 protected:
 
-    int n_axes = 6;
+    int n_axes = 0; // Gets increased in setAxisConfig
 
-    
     bool running = false;
     bool enabled = false;
-    bool finished_phase = false;
-    uint16_t period= 4; // Inter-interrupt time
+    bool phaseIsActive = false;
+
+    long nextUpdate; // microseconds since start of current phase for next update to steppers
+    long nextClear; // microsecond until next clear of step pins. 
+
+    uint16_t period; // Inter-interrupt time
 
     Planner planner;
- 
     uint32_t now;
   
     StepperState state[N_AXES];
 
-    Stepper* steppers[N_AXES] = {0,0,0,0,0,0};
-
-    Stepper* newStepper(AxisConfig* as){
-        return new Stepper(as->axis);
-        //return new StepDirectionStepper(as->axis, as->step_pin, as->direction_pin, as->enable_pin);
-    }
-
-    void feedSteppers();
-
-    bool isEmpty(){ return planner.isEmpty(); }
+    Stepper *steppers[N_AXES] = {nullptr};
 
     bool nextPhase();
+
+ private:
+        friend std::ostream & operator<<(std::ostream &os, const StepDriver& sd);
+       
 
 };
 

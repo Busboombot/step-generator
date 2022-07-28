@@ -12,9 +12,9 @@
 #include <assert.h>
 
 #include "trj_jointss.h"
-#include "trj_stepper.h"
 #include "trj_util.h"
 #include "trj_segment.h"
+#include "trj_planner_const.h"
 
 using namespace std;
 

@@ -7,6 +7,7 @@
 #include "trj_jointss.h"
 
 
+
 Segment::Segment(std::vector<Joint> joints, Segment* prior,  const Move& move): 
         n(move.seq), target_t(move.t) {
 
