@@ -63,13 +63,16 @@ struct Move {
         x.resize(n_joints);
     }
 
-    Move(uint32_t seq, uint32_t t, MoveType move_type, MoveArray x): move_type(move_type), t(t), x(x){}
+    Move(uint32_t seq, uint32_t t, MoveType move_type, MoveArray x): seq(seq), move_type(move_type), t(t), x(x){}
 
     Move(uint32_t seq, uint32_t t, MoveType move_type, std::initializer_list<int> il): 
-        move_type(move_type), t(t), x(MoveArray(il.begin(), il.end())){}
+        seq(seq), move_type(move_type), t(t), x(MoveArray(il.begin(), il.end())){}
     
     Move(uint32_t t, std::initializer_list<int> il): Move(0, t, MoveType::relative, il){}
     
+
+private: 
+    friend ostream &operator<<( ostream &output, const Move &p );
 };
 
 
@@ -119,7 +122,6 @@ public:
     void push(const Move& move);
 
     void push(int seq, int t, MoveArray x);
-
 
     Segment& peekSegment(int i){
         return *segments[i];

@@ -14,15 +14,14 @@
 #include "trj_config.h"
 #include "trj_planner.h"
 
-#define ITR_DELAY 2
-
-#define EEPROM_OFFSET 1
 
 class Loop {
 
 public:
 
-    Loop(Stream& serial, unsigned int period) :  sdp(serial, *this), sd(StepDriver(period))  {}
+    Loop(Stream& serial) :  sdp(serial, *this)  {
+        sd.setPeriod(INTERRUPT_DELAY);
+    }
 
     void setup();
 
@@ -60,6 +59,9 @@ public:
 
     void printInfo();
 
+    MessageProcessor &getMessageProcessor(){ return sdp;}
+    
+
 private:
 
     Config config;
@@ -69,7 +71,7 @@ private:
 
     MessageProcessor sdp;
 
-    StepDirectionStepper *steppers[N_AXES];
+    StepDirectionStepper *steppers[N_AXES] = {0};
 
     StepDriver sd;
 

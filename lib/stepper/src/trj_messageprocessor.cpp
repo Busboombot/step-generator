@@ -47,12 +47,11 @@ void MessageProcessor::send(const uint8_t* buffer_, CommandCode code, uint16_t s
 
 void MessageProcessor::processPacket(const uint8_t* buffer_, size_t size){
     PacketHeader *ph = (PacketHeader*)buffer_;
-    ser_printf("R s%d c%d l%d", ph->seq, (int)ph->code, size-sizeof(PacketHeader));
 
     uint8_t that_crc = ph->crc;
     crc(size); // Calc crc on buffer, put back into ph. 
     if (that_crc != ph->crc){
-      ser_printf("CRC error. Got %d, calculated %d", that_crc, ph->crc );
+      
       sendNack();
       return;
     } 
@@ -60,7 +59,6 @@ void MessageProcessor::processPacket(const uint8_t* buffer_, size_t size){
     if(ph->code == CommandCode::NOOP){
       //Do Nothing
     } else if(ph->code == CommandCode::ECHO){
-      ser_printf("ECHO len %d ", size - sizeof(PacketHeader));
       send((const uint8_t*)buffer_ + sizeof(PacketHeader), ph->code, ph->seq, size - sizeof(PacketHeader));
       
       return; // Echos are their own ack.

@@ -18,6 +18,7 @@
 
 extern Loop  mainLoop;
 
+
 void clearSegmentCompleteISR(){ mainLoop.clearSegmentComplete();}
 
 inline void Loop::signalSegmentComplete(){
@@ -54,20 +55,29 @@ void Loop::setup(){
 void Loop::loopOnce(){
     // Blink the LED and toggle a debugging pin, to show we're not crashed. 
     
-    
-
+  
     static unsigned long last = millis();
     static bool ledToggle = true;
     
     // Fast tick for running, slow for idle
-    if( millis() - last > (running ? 100 : 2000)  ){
+    if( millis() - last > (running ? 10 : 500)  ){
       digitalWrite(LED_BUILTIN, (ledToggle = !ledToggle));
       last = millis();
     }
 
     sdp.update();  // Get serial data and update queues 
     
-    sd.update();
+    sd.tick(); // sd.update(); // Update the steppers
+
+    int seq = sd.checkIsDone();
+    if (seq >=0){
+         signalSegmentComplete();
+    }
+
+    if (sd.checkIsEmpty()){
+      sdp.sendEmpty(sd.getPlanner().getCurrentPhase().seq, current_state);
+    }
+
 }
 
 
@@ -106,6 +116,7 @@ void Loop::setConfig(Config* config_){
   }
 
   sd.setNAxes(config.n_axes);
+  sd.setPeriod(config.interrupt_delay);
 }
 
 /**
@@ -115,13 +126,13 @@ void Loop::setConfig(Config* config_){
  * @param eeprom_write If true, write positions to the eeprom. 
  */
 void Loop::setAxisConfig(AxisConfig* as){
-  
-  
+
   if(as->axis < config.n_axes){
     sd.setAxisConfig(as->axis, as->v_max, as->a_max);
     if ( steppers[as->axis] != nullptr){
       delete steppers[as->axis];
     }
+
     steppers[as->axis] = new StepDirectionStepper(as->axis,as->step_pin,as->direction_pin,as->enable_pin);
   
     sd.setStepper(as->axis, steppers[as->axis]);
@@ -129,7 +140,6 @@ void Loop::setAxisConfig(AxisConfig* as){
     axes_config[as->axis] = *as;
   }
 
-  
 }
 
 // Turn a move command into a move and add it to the planner
@@ -139,6 +149,7 @@ void Loop::processMove(const uint8_t* buffer_, size_t size){
     Moves *m = (Moves*)(buffer_ + sizeof(PacketHeader));
   
     Move move(getConfig().n_axes, ph->seq, m->segment_time, 0);
+
 
     switch(ph->code){
         case CommandCode::RMOVE:
@@ -156,6 +167,8 @@ void Loop::processMove(const uint8_t* buffer_, size_t size){
         
         default: ; 
     }
+
+
 
     for (int axis = 0; axis < getConfig().n_axes; axis++){
       move.x[axis] = m->x[axis];
@@ -206,12 +219,12 @@ void Loop::printInfo(){
             state.getPosition()); 
   }
   
-  return;
+  stringstream ss;
+  ss << sd << endl;
   
-  for(const Segment *s : planner.getSegments()){
-    stringstream ss;
-    ss << *s << "\r\n\0";
-    sdp.sendMessage(ss.str().c_str());
-   }
+  std::string line;
+  while (std::getline(ss, line, '\n')) {
+    sdp.sendMessage(line.c_str());
+  }
 
 }

@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <chrono>
 #include <time.h>
+#include <sstream>
 
 
 #include "trj_planner.h"
@@ -100,7 +101,8 @@ void test_low_rpm(){
 
 void test_driver(){
 
-    StepDriver sd = StepDriver(1);
+    StepDriver sd = StepDriver();
+    sd.setPeriod(4);
 
     int v_max = 5000;
     int a_max = 50000;
@@ -110,17 +112,34 @@ void test_driver(){
     sd.setAxisConfig(0, v_max, a_max);
 
     sd.push(Move(0,1e5, Move::MoveType::relative, {x}));
-    sd.push(Move(0,1e5, Move::MoveType::relative, {-x}));
+    sd.push(Move(1,1e5, Move::MoveType::relative, {-x}));
+    sd.push(Move(2,1e5, Move::MoveType::relative, {x}));
 
-    while(!sd.getPlanner().isEmpty()){
+    cout  << sd << endl;
+    int seq = 0;
+    while(!sd.isEmpty()){
 
-        if(sd.update() == 0){
-            cout << "T=" << sd.sincePhaseStart() << endl;
+        int sl = sd.update() ;
+        
+        seq = sd.checkIsDone();
+        if (seq >=0){
+            cout << "DONE "<<seq<<endl;
         }
 
+        if (sd.checkIsEmpty()){
+            cout << "EMPTY "<<endl;
+        }
+
+        if(sl == 0){
+            cout << "============ " << sd.sincePhaseStart() << endl;
+
+            cout << "END " << sd.getState(0) << endl;
+        }
     }
     
     sd.disable();
+
+    cout  << sd << endl;
 
 }
 

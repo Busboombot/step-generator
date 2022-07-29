@@ -4,10 +4,13 @@
 #include "trj_stepdriver.h"
 #include "trj_util.h"
 #include "trj_debug.h"
+#include "trj_debug.h"
 
 
 CurrentState current_state;
 auto lastPhaseTime = steadyClock::now();
+
+
 
 void StepDriver::setAxisConfig(uint8_t axis, unsigned int v_max, unsigned int a_max){
 
@@ -23,30 +26,32 @@ void StepDriver::setAxisConfig(uint8_t axis, unsigned int v_max, unsigned int a_
 
 void StepDriver::enable(){
   enabled = true;
+
   switch (n_axes){
-      case 6: steppers[5]->enable(state[5].getDirection());
-      case 5: steppers[4]->enable(state[4].getDirection()); 
-      case 4: steppers[3]->enable(state[3].getDirection()); 
-      case 3: steppers[2]->enable(state[2].getDirection()); 
-      case 2: steppers[1]->enable(state[1].getDirection());
-      case 1: steppers[0]->enable(state[0].getDirection()); 
+      case 6: enable(5);
+      case 5: enable(4);
+      case 4: enable(3);
+      case 3: enable(2);
+      case 2: enable(1);
+      case 1: enable(0);
   }
 }
 
 void StepDriver::disable(){
   enabled = false;
   switch (n_axes){
-      case 6: steppers[5]->disable();
-      case 5: steppers[4]->disable();
-      case 4: steppers[3]->disable();
-      case 3: steppers[2]->disable();
-      case 2: steppers[1]->disable();
-      case 1: steppers[0]->disable();
+      case 6: disable(5);
+      case 5: disable(4);
+      case 4: disable(3);
+      case 3: disable(2);
+      case 2: disable(1);
+      case 1: disable(0);
   }
 }
 
 void StepDriver::push(Move move){
 
+    
     for (int axis = 0; axis < n_axes; axis++){
       if(move.move_type == Move::MoveType::absolute){
         current_state.planner_positions[axis] = move.x[axis];
@@ -64,25 +69,51 @@ void StepDriver::push(Move move){
 
 int StepDriver::loadNextPhase(){
   const PhaseJoints&  pj = planner.getNextPhase();
-  cout << pj << endl;
+  
   int active_axes = 0;
 
   for (int axis = 0; axis < n_axes; axis++){
     const JointSubSegment &jss = pj.moves[axis];
     if(jss.x != 0){
       active_axes++;
-      state[axis].setParams(jss.t, jss.v_0, jss.v_1, jss.x, period); // Omits config for INTERRUPT_DELAY
+      state[axis].setParams(jss.t, jss.v_0, jss.v_1, jss.x, period);
       if (steppers[axis] != nullptr){
         steppers[axis]->enable(state[axis].getDirection());
       }
+   
     } else {
       state[axis].setParams(0, 0, 0, 0, 0);
     }
   }
-
+  
+  lastSeq = pj.seq;
   return active_axes;
 }
 
+void StepDriver::tick(){
+
+
+  auto start = steadyClock::now();
+   
+  double t = sincePhaseStart(); // microseconds since start of the current phase
+  
+  DEBUG_TOG_1
+  
+  if( t >= nextUpdate){
+    nextUpdate = t+period;
+    nextClear = nextUpdate + period/2;
+    DEBUG_SET_2
+  }
+
+  if ( (nextClear > 0) & (t >= nextClear)){
+    nextClear = 0;
+    DEBUG_CLEAR_2;
+  }
+  
+  duration elapsed = steadyClock::now() - start;
+
+  ser_printf("T=%f\n",elapsed.count());
+}
 
 int StepDriver::update(){
 
@@ -90,9 +121,12 @@ int StepDriver::update(){
 
   double t = sincePhaseStart(); // microseconds since start of the current phase
 
+
+
   return 0 ;
 
-  if(!phaseIsActive & !isEmpty() ){
+  if( !phaseIsActive  & !planner.isEmpty() ){ 
+    DEBUG_SET_1
     int active_axes = loadNextPhase();
     
     if( active_axes > 0){
@@ -103,6 +137,7 @@ int StepDriver::update(){
         nextClear = 0;
 
     }
+    DEBUG_CLEAR_1
   }
 
 
@@ -110,7 +145,7 @@ int StepDriver::update(){
     nextUpdate += period;
     nextClear = nextUpdate + period/2;
     stepsLeft = 0;
-
+  
     switch (n_axes) {
       case 6: stepsLeft += step(5);
       case 5: stepsLeft += step(4);
@@ -122,11 +157,19 @@ int StepDriver::update(){
     }
 
     if(stepsLeft == 0){
+      
+      segment_is_done = lastSeq;
       phaseIsActive = false;
+
+      if (isEmpty()){
+        is_empty = true;
+      }
+    } else {
+      DEBUG_TOG_2
     }
   }
 
-  if (t >= nextClear){
+  if ( (nextClear > 0) & (t >= nextClear)){
     switch (n_axes) {
       case 6: clear(5);
       case 5: clear(4);
@@ -139,6 +182,7 @@ int StepDriver::update(){
     nextClear = 0;
   }
 
+ 
   return stepsLeft;
 
 }
@@ -146,7 +190,6 @@ int StepDriver::update(){
 double StepDriver::sincePhaseStart(){ 
   return usince(lastPhaseTime); 
 }
-
 
 
 void StepperState::setParams(uint32_t segment_time, uint32_t v0, uint32_t v1, int32_t x, int period){
@@ -220,10 +263,37 @@ void StepperState::setParams(uint32_t segment_time, uint32_t v0, uint32_t v1, in
         
         return stepsLeft;
   }
+
+ostream &operator<<( ostream &output, const Stepper &s )  { 
+    output << "[Stp " << (int)s.axis  << " ]";
+    return output;
+}
         
+ostream &operator<<( ostream &output, const StepperState &s ) { 
+    output << "[SS sl="<<s.stepsLeft << " rt=" << s.t << " dl="<<s.delay 
+           << " dc=" << s.delay_counter << " p=" << s.position << " ]" ;
+    return output;
+
+}
 
 ostream &operator<<( ostream &output, const StepDriver &sd ) { 
 
+    output << "--- Steppers --" <<endl;
+    for(int i =0; i < sd.n_axes; i++){
+      Stepper *s = sd.steppers[i];
+      if(s == nullptr){
+        output << "[]" << endl;
+      } else {
+        output << s << " " << *s << endl;
+      }
+    }
+    output << endl;
+    output << "--- State --" <<endl;
+    for(int i =0; i < sd.n_axes; i++){
+      output << sd.state[i] <<endl;
+    }
+  
+    output << "--- Planner --" << endl;
     output << sd.planner << endl;
 
     return output;

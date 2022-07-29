@@ -7,7 +7,6 @@
 #include "trj_planner.h"
 #include "trj_util.h"
 
-
 typedef enum
 {
     CCW = -1,  ///< Clockwise
@@ -54,6 +53,10 @@ public:
     void disable() { setDirection(STOP); enabled = false;}
     void setDirection(Direction dir){direction = dir;};
 
+private: 
+    friend ostream &operator<<( ostream &output, const Stepper &s );
+  
+
 };
 
 class StepperState {
@@ -64,16 +67,16 @@ protected:
     uint32_t  stepsLeft=0;
     long position = 0;
 
-    int period; 
+    int period = 0; 
 
-    float delay_counter;
-    float delay;
-    float delay_inc;
-    float v;
-    float a;
-    float t;   // Running time
-    float t_s; // segment time, in sections
-    float v_i; // Initial velocity
+    float delay_counter=0;
+    float delay=0;
+    float delay_inc=0;
+    float v=0;
+    float a=0;
+    float t=0;   // Running time
+    float t_s=0; // segment time, in sections
+    float v_i=0; // Initial velocity
 
 
 public:
@@ -95,6 +98,8 @@ public:
 
     int step(Stepper *stepper);
 
+ private:
+        friend std::ostream & operator<<(std::ostream &os, const StepperState& sd);
    
 
 };
@@ -115,7 +120,9 @@ class StepDriver {
 
 public:
 
-    StepDriver(uint16_t period) :  period(period){}
+    StepDriver() {
+        
+    }
     ~StepDriver(){}
 
     void stop() { running = false; }
@@ -124,7 +131,19 @@ public:
 
     void enable();
 
+    inline void enable(uint8_t axis){
+        if (steppers[axis] != nullptr){
+            steppers[axis]->enable(state[axis].getDirection());
+        }
+    }
+
     void disable();
+
+    inline void disable(uint8_t axis){
+        if (steppers[axis] != nullptr){
+            steppers[axis]->disable();
+        }
+    }
 
     void setAxisConfig(uint8_t axis, unsigned int v_max, unsigned int a_max);
 
@@ -133,7 +152,9 @@ public:
     inline StepperState& getState(uint8_t n){ return state[n]; }
     inline Planner& getPlanner(){ return planner;}
 
-    inline int step(uint8_t n){ return state[n].step(steppers[n]); }
+    inline int step(uint8_t n){ 
+        return state[n].step(steppers[n]); 
+    }
 
     inline void clear(uint8_t n){
         if (steppers[n] != 0){
@@ -143,9 +164,11 @@ public:
 
     int update(); // Run all of the stepping and state updates
 
+    void tick(); // Replaces update() to test timers
+
     int loadNextPhase();
 
-    bool isEmpty(){ return planner.isEmpty(); }
+    bool isEmpty(){ return planner.isEmpty() & !phaseIsActive; }
 
     void push(Move m);
 
@@ -161,8 +184,27 @@ public:
     }
 
     void setNAxes(int n){ n_axes = n; }
+    void setPeriod(int p){period = p;}
 
 
+    int checkIsDone(){
+        if(segment_is_done >= 0){
+            int seq = segment_is_done;
+            segment_is_done  = -1 ;
+            return seq;
+        } else {
+            return -1;
+        }
+    }
+
+    bool checkIsEmpty(){
+        if(is_empty){
+            is_empty = false;
+            return true;
+        } else{
+            return false;
+        }
+    }
 
 protected:
 
@@ -172,8 +214,12 @@ protected:
     bool enabled = false;
     bool phaseIsActive = false;
 
-    long nextUpdate; // microseconds since start of current phase for next update to steppers
-    long nextClear; // microsecond until next clear of step pins. 
+    double nextUpdate = 0; // microseconds since start of current phase for next update to steppers
+    double nextClear = 0; // microsecond until next clear of step pins. 
+
+    // flags
+    int segment_is_done = -1; // If last segment completed, holds the sequence number
+    bool is_empty = false; // Latching flag signalling emptyness. 
 
     uint16_t period; // Inter-interrupt time
 
@@ -184,11 +230,11 @@ protected:
 
     Stepper *steppers[N_AXES] = {nullptr};
 
-    bool nextPhase();
+    int lastSeq; // Most recent sequence number, from the last Phase joints loaded. 
 
  private:
         friend std::ostream & operator<<(std::ostream &os, const StepDriver& sd);
-       
+      
 
 };
 

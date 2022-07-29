@@ -1,3 +1,4 @@
 #pragma once
 
-#define INTERRUPT_DELAY 4
+// Default interrupt period
+#define INTERRUPT_DELAY 20

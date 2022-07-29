@@ -19,8 +19,30 @@ extern int debug_state_1;
 #define DEBUG_TOG_1 
 #endif
 
+#ifdef DEBUG_PIN_2
+extern int debug_state_2;
+#define DEBUG_SET_2 digitalWriteFast(DEBUG_PIN_2, HIGH);
+#define DEBUG_CLEAR_2 digitalWriteFast(DEBUG_PIN_2, LOW);
+#define DEBUG_TOG_2 digitalWriteFast(DEBUG_PIN_2, debug_state_2=!debug_state_2);
+#else
+#define DEBUG_SET_2
+#define DEBUG_CLEAR_2
+#define DEBUG_TOG_2
+#endif
+
+#ifdef DEBUG_PIN_3
+extern int debug_state_3;
+#define DEBUG_SET_3 digitalWriteFast(DEBUG_PIN_3, HIGH);
+#define DEBUG_CLEAR_3 digitalWriteFast(DEBUG_PIN_3, LOW);
+#define DEBUG_TOG_3 digitalWriteFast(DEBUG_PIN_3, debug_state_3=!debug_state_3);
+#else
+#define DEBUG_SET_3
+#define DEBUG_CLEAR_3
+#define DEBUG_TOG_3
+#endif
+
 // This should be a macro, or something, 
 // but I got lazy trying to figure out macro varargs
-#define SER_PRINT_ENABLED false
+#define SER_PRINT_ENABLED true
 
 void ser_printf(const char* fmt, ...);

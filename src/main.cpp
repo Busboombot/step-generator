@@ -29,7 +29,7 @@ extern "C" {
   } // end _gettimeofday()
 }
 
-Loop mainLoop(Serial, INTERRUPT_DELAY);
+Loop mainLoop(Serial);
 
 /**
  * @brief Run-once setup
@@ -44,6 +44,7 @@ pinMode(DEBUG_PIN_1, OUTPUT);
 
   Serial.begin(115200); 
   Serial1.begin(115200);
+  Serial1.println("Debug Starting");
   delay(200);
 
   mainLoop.setup();
