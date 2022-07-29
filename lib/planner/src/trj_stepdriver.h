@@ -120,7 +120,7 @@ class StepDriver {
 
 public:
 
-    StepDriver() {
+    StepDriver() : period(10) {
         
     }
     ~StepDriver(){}
@@ -221,7 +221,7 @@ protected:
     int segment_is_done = -1; // If last segment completed, holds the sequence number
     bool is_empty = false; // Latching flag signalling emptyness. 
 
-    uint16_t period; // Inter-interrupt time
+    int period; // Inter-interrupt time
 
     Planner planner;
     uint32_t now;

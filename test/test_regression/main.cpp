@@ -102,7 +102,7 @@ void test_low_rpm(){
 void test_driver(){
 
     StepDriver sd = StepDriver();
-    sd.setPeriod(4);
+    sd.setPeriod(10);
 
     int v_max = 5000;
     int a_max = 50000;

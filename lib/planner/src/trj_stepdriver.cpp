@@ -6,6 +6,8 @@
 #include "trj_debug.h"
 #include "trj_debug.h"
 
+#include <chrono>
+#include "teensy_clock.h"
 
 CurrentState current_state;
 auto lastPhaseTime = steadyClock::now();
@@ -90,29 +92,35 @@ int StepDriver::loadNextPhase(){
   return active_axes;
 }
 
+using namespace std::chrono;
+typedef system_clock::time_point timePoint; 
+
+
 void StepDriver::tick(){
 
+  static long t0 = micros();
+  
+  double t = (double)(micros()-t0);
 
-  auto start = steadyClock::now();
-   
-  double t = sincePhaseStart(); // microseconds since start of the current phase
-  
-  DEBUG_TOG_1
-  
   if( t >= nextUpdate){
-    nextUpdate = t+period;
-    nextClear = nextUpdate + period/2;
+
+    nextUpdate = t+(double)period;
+    if(nextClear == 0){
+      nextClear = t + 2;
+    }
+
+    DEBUG_TOG_1
     DEBUG_SET_2
   }
 
-  if ( (nextClear > 0) & (t >= nextClear)){
+  if ( t >= nextClear){
     nextClear = 0;
     DEBUG_CLEAR_2;
   }
   
-  duration elapsed = steadyClock::now() - start;
+  //ser_printf("%f %f %d\n", t, nextUpdate, nextClear);
+  //delay(500);
 
-  ser_printf("T=%f\n",elapsed.count());
 }
 
 int StepDriver::update(){

@@ -42,6 +42,15 @@ void setup(){
 pinMode(DEBUG_PIN_1, OUTPUT);
 #endif
 
+#ifdef  DEBUG_PIN_2
+pinMode(DEBUG_PIN_2, OUTPUT);
+#endif
+
+#ifdef  DEBUG_PIN_3
+pinMode(DEBUG_PIN_3, OUTPUT);
+#endif
+
+
   Serial.begin(115200); 
   Serial1.begin(115200);
   Serial1.println("Debug Starting");
