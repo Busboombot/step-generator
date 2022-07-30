@@ -42,10 +42,11 @@ void MessageProcessor::send(CommandCode code, uint16_t seq, size_t length){
 void MessageProcessor::send(const uint8_t* buffer_, CommandCode code, uint16_t seq, size_t length){
     memcpy(buffer+sizeof(PacketHeader), buffer_, length>MAX_PAYLOAD_SIZE?MAX_PAYLOAD_SIZE:length);
     send(code, seq, length);
-    ser_printf("S s%d c%d l%d", seq, code, length);
+
 }
 
 void MessageProcessor::processPacket(const uint8_t* buffer_, size_t size){
+    DEBUG_SET_4
     PacketHeader *ph = (PacketHeader*)buffer_;
 
     uint8_t that_crc = ph->crc;
@@ -67,10 +68,10 @@ void MessageProcessor::processPacket(const uint8_t* buffer_, size_t size){
       loop.processMove(buffer_, size);
 
     } else if(ph->code == CommandCode::RUN){
-      loop.enable();
+      loop.start();
 
     } else if (ph->code == CommandCode::STOP){
-      loop.disable();
+      loop.stop();
 
     } else if (ph->code == CommandCode::RESET) {
       loop.reset();
@@ -90,6 +91,7 @@ void MessageProcessor::processPacket(const uint8_t* buffer_, size_t size){
     }
   
     sendAck(ph->seq);
+    DEBUG_CLEAR_4
 
   }
 

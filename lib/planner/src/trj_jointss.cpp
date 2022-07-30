@@ -270,6 +270,13 @@ void JointSegment::loadJointSubSeg(JointSubSegment& jss, SubSegName phase)  {
     }
 }
 
+ostream &operator<<( ostream &output, const Joint &j ) { 
+
+    output << "[J " << j.n << " v=" << j.v_max << " a=" << j.a_max << " d=" << j.d_max << " ]";
+    return output;
+
+}
+
 ostream &operator<<( ostream &output, const PhaseJoints &pj ) { 
 
     output << "(" << setw(8) << pj.t << ")";
@@ -290,8 +297,9 @@ ostream &operator<<( ostream &output, const PhaseJoints &pj ) {
 // [ Va Xa : Vc Xc : Vc Xd]
 ostream &operator<<( ostream &output, const JointSubSegment3 &j ) { 
 
+
     output <<  "[" 
-    <<  setw(6) << j.a.v_0 << "↗" <<  setw(6) << j.c.v_0 << "↘" <<  setw(6) << j.d.v_1
+    <<  setw(6) << j.a.v_0 << ' ' <<  setw(6) << j.c.v_0 << ' ' <<  setw(6) << j.d.v_1
     <<  setw(6) << j.a.x << "|"  <<  setw(6) << j.c.x << "|" << setw(6) << j.d.x
     << "]";  
 

@@ -116,6 +116,8 @@ public:
 
     const std::vector<Joint> &getJoints(){ return joints;}
 
+    const Joint &getJoint(int i){ return joints[i];}
+
     const std::deque<Segment*> & getSegments() { return segments; }
 
     // Add a move, processing it into a Segment
@@ -150,7 +152,7 @@ public:
     bool isEmpty(){ return segments.size() == 0; }
 
     friend ostream &operator<<( ostream &output, const Planner &p );
-
+    
     
 
 };

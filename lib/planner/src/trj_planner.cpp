@@ -39,6 +39,9 @@ void Planner::setJoint(Joint &joint){
     }
 }
 
+#include <sstream>
+#include "trj_debug.h"
+
 void Planner::push(const Move& move){ // push to tail
 
     Move move_ = move;
@@ -82,7 +85,7 @@ void Planner::push(const Move& move){ // push to tail
         last = segments.back();
     
     Segment *segment = new Segment(joints, last, move_);
-  
+
     
     segments.push_back(segment);
   
@@ -139,8 +142,14 @@ const PhaseJoints& Planner::getNextPhase(){
 
 ostream &operator<<( ostream &output, const Planner &p ) { 
 
-    for(const Segment *s : p.segments)
+    for(const Segment *s : p.segments){
         output << *s << endl;
+    }
+    output << endl;
+
+    for(const Joint j : p.joints){
+        output << j << endl;
+    }
 
     return output;
 }

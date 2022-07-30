@@ -35,6 +35,8 @@ public:
     float a_max;
     float d_max;
 
+    friend ostream &operator<<( ostream &output, const Joint &j );
+
 };
 
  enum class SubSegName { NONE=4, ACCEL=0, CRUISE=1, DECEL=2 };
@@ -52,6 +54,7 @@ struct JointSubSegment {
 
     JointSubSegment(): t(0), x(0), v_0(0), v_1(0), ssn(SubSegName::NONE) {}
 
+    friend ostream &operator<<( ostream &output, const Joint &pj );
 };
 
 

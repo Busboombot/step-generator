@@ -4,13 +4,11 @@
 #include <cstdlib>
 #include <chrono>
 #include <time.h>
-#include <sstream>
 
-
-#include "trj_planner.h"
 #include "trj_segment.h"
 #include "trj_stepdriver.h"
 #include "trj_util.h"
+#include "trj_debug.h"
 
 // Can't get platform.io to load this library
 // #include "FastCRC.h"
@@ -22,6 +20,8 @@ extern time_t time(time_t *);
 // These are supposed to be defined somewhere, but aren't
 unsigned __exidx_start;
 unsigned __exidx_end;
+
+void ser_printf(const char* fmt, ...){}
 
 // Fixes bug 
 // https://github.com/arduino/Arduino/issues/9413
@@ -100,6 +100,7 @@ void test_low_rpm(){
 }
 
 void test_driver(){
+
 
     StepDriver sd = StepDriver();
     sd.setPeriod(10);

@@ -1,3 +1,8 @@
+
+#include <chrono>
+#include <thread>
+#include <unistd.h>
+#include "Arduino.h"
 #include "trj_util.h"
 
 bool same_sign(float a, float b){
@@ -5,11 +10,37 @@ bool same_sign(float a, float b){
 }
 
 
-double  usince(steadyClock::time_point start){
+#ifdef TRJ_ENV_HOST
+void delay(uint32_t ms){
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 
-    duration elapsed = steadyClock::now() - start;
-    return ((double)elapsed.count())/1000.0;
 }
+void delayMicroseconds(uint32_t us){
+    std::this_thread::sleep_for(std::chrono::microseconds(us));
+
+}
+
+
+steadyClock::time_point usince_start =  steadyClock::now();
+void start_usince(){
+    usince_start =  steadyClock::now();
+}
+
+uint32_t usince(){
+    auto elapsed = steadyClock::now() - usince_start;
+    return (uint32_t)(elapsed.count()/1000);
+}
+#else
+
+uint32_t  usince_start =  micros();
+void start_usince(){
+     usince_start =  micros();
+}
+
+uint32_t usince(){
+    return  micros() - usince_start;
+}
+#endif
 
 std::vector<std::string> splitString(const std::string& str){
     std::vector<std::string> tokens;

@@ -18,9 +18,9 @@ Segment::Segment(std::vector<Joint> joints, Segment* prior,  const Move& move):
         axis_n++;
     }
 
-    if (prior){
+    if (prior){ // If this isn't the first segment. 
         
-        // Iterate through the JointSegements for this semgnet, and the prior one:
+        // Iterate through the JointSegements for this segment, and the prior one:
         // 1) Link the two together through next and prior links
         // 2) Check if any of the axes have change direction, which will
         //    force the boundary velocity to zero. 
@@ -161,8 +161,12 @@ ostream& operator<<( ostream &output, const Segment &s ) {
             << setw(7) << s.t_c << " " 
             << setw(7) << s.t_d << "]";
 
-    for(const JointSegment& js : s.joint_segments)
+    for(const JointSegment& js : s.joint_segments){
         output << js.getSubSegments3();
+        break;
+    }
+
+    output << " ... <only 1 ss shown >";
 
     return output;      
 }

@@ -10,9 +10,15 @@
 typedef std::chrono::milliseconds ms;
 typedef std::chrono::microseconds us;
 typedef std::chrono::steady_clock steadyClock;
-typedef std::chrono::duration<float, std::nano> duration;
+typedef std::chrono::duration<uint64_t, std::micro> duration;
 
-double usince(steadyClock::time_point start);
+void start_usince();
+uint32_t usince();
+
+#ifdef TRJ_ENV_HOST
+void delay(uint32_t ms);
+void delayMicroseconds(uint32_t us);
+#endif
 
 extern int here_count;
 #define HERE(x) std::cout << "!!!HERE!!! " << x << " " << here_count++ << std::endl;

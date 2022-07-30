@@ -11,6 +11,8 @@ bool ser_printf_flag = true;
 int debug_state_1 = LOW;
 int debug_state_2 = LOW;
 int debug_state_3 = LOW;
+int debug_state_4 = LOW;
+
 
 #if SER_PRINT_ENABLED
 // Printf to the debug serial port

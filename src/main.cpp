@@ -37,6 +37,8 @@ Loop mainLoop(Serial);
  */
 void setup(){
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(EMPTY_PIN, OUTPUT);
+  pinMode(RUNNING_PIN, OUTPUT);
 
 #ifdef  DEBUG_PIN_1
 pinMode(DEBUG_PIN_1, OUTPUT);
@@ -50,6 +52,9 @@ pinMode(DEBUG_PIN_2, OUTPUT);
 pinMode(DEBUG_PIN_3, OUTPUT);
 #endif
 
+#ifdef  DEBUG_PIN_4
+pinMode(DEBUG_PIN_4, OUTPUT);
+#endif
 
   Serial.begin(115200); 
   Serial1.begin(115200);

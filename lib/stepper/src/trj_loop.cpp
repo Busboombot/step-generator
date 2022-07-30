@@ -15,6 +15,7 @@
 #include "trj_config.h"
 #include "trj_segment.h"
 #include "trj_debug.h"
+#include "trj_util.h"
 
 extern Loop  mainLoop;
 
@@ -47,7 +48,37 @@ inline void Loop::clearSegmentComplete(){
 }
 
 void Loop::setup(){
+  start_usince();
   return;
+}
+
+#define PATTERN_SIZE 20
+#define BASE_DELAY 2000/PATTERN_SIZE // Pattern runs over 2,000 ms
+
+int blink_patterns[4][PATTERN_SIZE] = {
+  {1,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0},  // !empty & !running: 4 fast blinks
+  {1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0},  // !empty & running: continuous fast blink
+  {1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0},  // empty  & !running: long, slow blink
+  {1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0},  // empty  & running: 1 per second
+};
+
+void blink(bool running, bool empty){
+
+  static int pattern_index = 0;
+  static int db_print = 0;
+  static unsigned long last = millis();
+
+  int pattern = ((int)empty)<<1 | ((int)running);
+
+  digitalWrite(EMPTY_PIN, !empty);
+  digitalWrite(RUNNING_PIN, running);
+
+  if( (millis() - last) > BASE_DELAY  ){
+    pattern_index = (pattern_index+1)%PATTERN_SIZE;
+    digitalWrite(LED_BUILTIN, blink_patterns[pattern][pattern_index] );
+    last = millis();
+    db_print++;
+  }
 }
 
 /* Run one iteration of the main loop
@@ -55,41 +86,36 @@ void Loop::setup(){
 void Loop::loopOnce(){
     // Blink the LED and toggle a debugging pin, to show we're not crashed. 
     
-  
-    static unsigned long last = millis();
-    static bool ledToggle = true;
-    
-    // Fast tick for running, slow for idle
-    if( millis() - last > (running ? 10 : 500)  ){
-      digitalWrite(LED_BUILTIN, (ledToggle = !ledToggle));
-      last = millis();
-    }
+    blink(running, sd.isEmpty());
 
     sdp.update();  // Get serial data and update queues 
     
-    sd.tick(); // sd.update(); // Update the steppers
+    if (running){
+      sd.update(); // Update the steppers
 
-    int seq = sd.checkIsDone();
-    if (seq >=0){
-         signalSegmentComplete();
+      int seq = sd.checkIsDone();
+      if (seq >=0){
+          signalSegmentComplete();
+      }
+
+      if (sd.checkIsEmpty()){
+        disable();
+        sdp.sendEmpty(sd.getPlanner().getCurrentPhase().seq, current_state);
+      }
+    } else {
+
     }
-
-    if (sd.checkIsEmpty()){
-      sdp.sendEmpty(sd.getPlanner().getCurrentPhase().seq, current_state);
-    }
-
 }
-
 
 // Start the timers, if there are segments available. 
 void Loop::start(){ 
   running = true;
+  
 }
 
 void Loop::stop(){ 
   running = false;
 }
-
 
 /**
  * @brief Remove all of the segments from the queue
@@ -101,6 +127,13 @@ void Loop::reset(){
 
 void Loop::zero(){
   sd.zero();
+}
+
+void Loop::enable() { 
+    sd.enable();
+}
+void Loop::disable() {
+    sd.disable();
 }
 
 void Loop::setConfig(Config* config_){
@@ -134,7 +167,8 @@ void Loop::setAxisConfig(AxisConfig* as){
     }
 
     steppers[as->axis] = new StepDirectionStepper(as->axis,as->step_pin,as->direction_pin,as->enable_pin);
-  
+
+
     sd.setStepper(as->axis, steppers[as->axis]);
   
     axes_config[as->axis] = *as;
@@ -180,6 +214,7 @@ void Loop::processMove(const uint8_t* buffer_, size_t size){
     current_state.queue_length = planner.getQueueSize();
     current_state.queue_time = planner.getQueueTime();
 
+
     sd.push(move);
 }
 
@@ -187,28 +222,23 @@ void Loop::printInfo(){
 
   auto& planner = sd.getPlanner();
 
-  sdp.printf("===========\n"
+  sdp.printf("===== Configuration ======\n"
             "Queue Size : %d\r\n"
             "Queue Time : %d\r\n"
             "Running    : %d\r\n"
             "N Axes     : %d\r\n"
-            "Joints     : %d\r\n"
             "Intr Delay : %d\r\n"
             "ClrSeg Pin : %d\r\n"
             "Debug print: %d\r\n"
             "Debug tick : %d\r\n",
            planner.getQueueSize(), planner.getQueueTime(), running, 
-           config.n_axes,planner.getJoints().size(), config.interrupt_delay, 
+           config.n_axes, config.interrupt_delay, 
            config.segment_complete_pin,config.debug_print, config.debug_tick) ;
   
-  for(const Joint &j : planner.getJoints() ){
-
-    if(j.n>=config.n_axes){
-      continue;
-    }
-
-    AxisConfig as = axes_config[j.n];
-    StepperState &state = sd.getState(j.n);
+  for( int i = 0 ; i < config.n_axes; i++){
+    AxisConfig as = axes_config[i];
+    StepperState &state = sd.getState(i);
+    const Joint &j = planner.getJoint(i);
 
     sdp.printf("-- Axis %d \r\n"
             "SDE        : %d %d %d\r\n"

@@ -40,11 +40,9 @@ public:
     inline StepDirectionStepper *getStepper(uint8_t n){ return steppers[n]; }
 
     void reset();
-
     void zero();
-
-    void enable() {}
-    void disable() {}
+    void enable();
+    void disable();
 
     void signalSegmentComplete();
     void clearSegmentComplete();
@@ -63,6 +61,8 @@ public:
     
 
 private:
+
+    bool is_stopped = false;
 
     Config config;
     AxisConfig axes_config[N_AXES];

@@ -338,6 +338,16 @@ void test_abs_rel(){
     
 }
 
+void test_zero_x(){
+    Planner p = Planner( {Joint(0, 26666, 266666)} );
+    
+
+    p.push(Move(0,1e5, Move::MoveType::relative, {6400,}));
+    TEST_ASSERT_EQUAL(6400, p.getPosition()[0]);
+
+    cout << p << endl;
+}
+
 int main(){
 
     UNITY_BEGIN();   
@@ -353,6 +363,7 @@ int main(){
     RUN_TEST(test_negative);
     RUN_TEST(test_jog_ql);
     RUN_TEST(test_abs_rel);
+    RUN_TEST(test_zero_x);
 
     UNITY_END();
     return 0;

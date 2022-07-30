@@ -6,6 +6,7 @@
 #include "trj_planner_const.h" // For N_AXES
 #include "trj_planner.h"
 #include "trj_util.h"
+#include "trj_debug.h"
 
 typedef enum
 {
@@ -45,12 +46,13 @@ public:
 
     Stepper() : axis(0), enabled(false){};
     Stepper(int8_t axis) : axis(axis), enabled(false){};
-    void writeStep(){ }
-    void clearStep(){};
-    void toggle(){};
-    void enable(){enabled = true;};
-    void enable(Direction dir){setDirection(dir);enable();}
-    void disable() { setDirection(STOP); enabled = false;}
+    virtual ~Stepper(){}
+    virtual void writeStep(){ }
+    virtual void clearStep(){};
+    virtual void toggle(){};
+    virtual void enable(){enabled = true;};
+    virtual void enable(Direction dir){ setDirection(dir);enable();}
+    virtual void disable() { setDirection(STOP); enabled = false;}
     void setDirection(Direction dir){direction = dir;};
 
 private: 
@@ -164,7 +166,6 @@ public:
 
     int update(); // Run all of the stepping and state updates
 
-    void tick(); // Replaces update() to test timers
 
     int loadNextPhase();
 
@@ -214,14 +215,14 @@ protected:
     bool enabled = false;
     bool phaseIsActive = false;
 
-    double nextUpdate = 0; // microseconds since start of current phase for next update to steppers
-    double nextClear = 0; // microsecond until next clear of step pins. 
+    uint32_t nextUpdate = 0; // microseconds since start of current phase for next update to steppers
+    uint32_t nextClear = 0; // microsecond until next clear of step pins. 
 
     // flags
     int segment_is_done = -1; // If last segment completed, holds the sequence number
     bool is_empty = false; // Latching flag signalling emptyness. 
 
-    int period; // Inter-interrupt time
+    uint32_t period; // Inter-interrupt time
 
     Planner planner;
     uint32_t now;

@@ -7,6 +7,8 @@ extern Stream &debug_serial;
 
 #define DEBUG_PIN_1 5
 #define DEBUG_PIN_2 6
+#define DEBUG_PIN_3 7
+#define DEBUG_PIN_4 8
 
 #ifdef DEBUG_PIN_1
 extern int debug_state_1;
@@ -41,8 +43,16 @@ extern int debug_state_3;
 #define DEBUG_TOG_3
 #endif
 
-// This should be a macro, or something, 
-// but I got lazy trying to figure out macro varargs
-#define SER_PRINT_ENABLED true
+#ifdef DEBUG_PIN_4
+extern int debug_state_4;
+#define DEBUG_SET_4 digitalWriteFast(DEBUG_PIN_4, HIGH);
+#define DEBUG_CLEAR_4 digitalWriteFast(DEBUG_PIN_4, LOW);
+#define DEBUG_TOG_4 digitalWriteFast(DEBUG_PIN_4, debug_state_4=!debug_state_4);
+#else
+#define DEBUG_SET_4
+#define DEBUG_CLEAR_4
+#define DEBUG_TOG_4
+#endif
+
 
 void ser_printf(const char* fmt, ...);

@@ -41,12 +41,12 @@ public:
     ~StepDirectionStepper(){}
     
     inline void writeStep(){
-        digitalWriteFast(stepPin, HIGH);
+        fastSet(stepPin);
         position += direction;
     }
    
     inline void clearStep(){
-        digitalWriteFast(stepPin, LOW);
+        fastClear(stepPin);
     }
     
     inline void toggle(){
@@ -58,13 +58,9 @@ public:
         }
     }
 
-    inline void enable(){
-       
-        digitalWriteFast(enablePin, enable_active);  // Usually active low 
-    }
+
     
-    inline void enable(Direction dir){
-        
+    inline void enable(Direction dir){  
         setDirection(dir);
         enable();
     }
@@ -75,6 +71,7 @@ public:
     }
     
     inline void setDirection(Direction dir){
+
         if (dir == CW){
             fastSet(directionPin);
             direction = CW;
@@ -89,7 +86,11 @@ public:
     inline int getPosition(){ return position; }
     inline void setPosition(int64_t v){ position = v; }
      
+private: 
 
+    inline void enable(){
+        digitalWriteFast(enablePin, enable_active);  // Usually active low 
+    }
      
 };
 

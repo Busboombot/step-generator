@@ -6,8 +6,13 @@
 #include "trj_debug.h"
 #include "trj_debug.h"
 
-#include <chrono>
-#include "teensy_clock.h"
+#include <sstream>
+
+#ifdef TRJ_ENV_HOST
+long micros(){
+  return 0;
+}
+#endif
 
 CurrentState current_state;
 auto lastPhaseTime = steadyClock::now();
@@ -71,14 +76,16 @@ void StepDriver::push(Move move){
 
 int StepDriver::loadNextPhase(){
   const PhaseJoints&  pj = planner.getNextPhase();
-  
+
   int active_axes = 0;
 
   for (int axis = 0; axis < n_axes; axis++){
     const JointSubSegment &jss = pj.moves[axis];
     if(jss.x != 0){
       active_axes++;
+      
       state[axis].setParams(jss.t, jss.v_0, jss.v_1, jss.x, period);
+
       if (steppers[axis] != nullptr){
         steppers[axis]->enable(state[axis].getDirection());
       }
@@ -92,66 +99,29 @@ int StepDriver::loadNextPhase(){
   return active_axes;
 }
 
-using namespace std::chrono;
-typedef system_clock::time_point timePoint; 
 
 
-void StepDriver::tick(){
 
-  static long t0 = micros();
-  
-  double t = (double)(micros()-t0);
-
-  if( t >= nextUpdate){
-
-    nextUpdate = t+(double)period;
-    if(nextClear == 0){
-      nextClear = t + 2;
-    }
-
-    DEBUG_TOG_1
-    DEBUG_SET_2
-  }
-
-  if ( t >= nextClear){
-    nextClear = 0;
-    DEBUG_CLEAR_2;
-  }
-  
-  //ser_printf("%f %f %d\n", t, nextUpdate, nextClear);
-  //delay(500);
-
-}
 
 int StepDriver::update(){
 
   static unsigned long  stepsLeft = 0;
 
-  double t = sincePhaseStart(); // microseconds since start of the current phase
-
-
-
-  return 0 ;
-
+  uint32_t t = usince();
+  
   if( !phaseIsActive  & !planner.isEmpty() ){ 
-    DEBUG_SET_1
     int active_axes = loadNextPhase();
     
     if( active_axes > 0){
         phaseIsActive = true;
-        lastPhaseTime = steadyClock::now();
-        t = sincePhaseStart();
-        nextUpdate = t ;
-        nextClear = 0;
-
+        start_usince();
+        t = nextUpdate =  usince(); // SHould be 0, or there about
     }
-    DEBUG_CLEAR_1
   }
 
-
   if(phaseIsActive and (t >= nextUpdate) ){
-    nextUpdate += period;
-    nextClear = nextUpdate + period/2;
+
+    nextUpdate = t+period;
     stepsLeft = 0;
   
     switch (n_axes) {
@@ -164,8 +134,9 @@ int StepDriver::update(){
       case 0: ;
     }
 
-    if(stepsLeft == 0){
-      
+
+    if(stepsLeft == 0){ 
+
       segment_is_done = lastSeq;
       phaseIsActive = false;
 
@@ -173,11 +144,16 @@ int StepDriver::update(){
         is_empty = true;
       }
     } else {
-      DEBUG_TOG_2
+     
+      if(nextClear == 0){
+        nextClear = t + 2;
+      }
     }
-  }
 
-  if ( (nextClear > 0) & (t >= nextClear)){
+    
+  } 
+
+  if ( (nextClear != 0 ) & (t >= nextClear)){
     switch (n_axes) {
       case 6: clear(5);
       case 5: clear(4);
@@ -188,6 +164,7 @@ int StepDriver::update(){
       case 0: ;
     }
     nextClear = 0;
+    
   }
 
  
@@ -196,7 +173,7 @@ int StepDriver::update(){
 }
 
 double StepDriver::sincePhaseStart(){ 
-  return usince(lastPhaseTime); 
+  return 0;
 }
 
 
@@ -209,6 +186,7 @@ void StepperState::setParams(uint32_t segment_time, uint32_t v0, uint32_t v1, in
         } else {
             direction = STOP;
         }
+
         t = 0; // cumulative time
         delay = 0;
         delay_counter = 0;
@@ -236,12 +214,14 @@ void StepperState::setParams(uint32_t segment_time, uint32_t v0, uint32_t v1, in
         if (stepsLeft == 0){
             return 0;
         }
-
+        
         if (delay_counter >= delay){
 
             delay_counter -= delay;
             stepsLeft--;
+            
             if (stepper != nullptr){
+              
               stepper->writeStep();
             }
           
@@ -300,8 +280,9 @@ ostream &operator<<( ostream &output, const StepDriver &sd ) {
     for(int i =0; i < sd.n_axes; i++){
       output << sd.state[i] <<endl;
     }
+
   
-    output << "--- Planner --" << endl;
+    output << "--- Segments --" << endl;
     output << sd.planner << endl;
 
     return output;
