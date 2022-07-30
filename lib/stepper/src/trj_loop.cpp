@@ -47,10 +47,7 @@ inline void Loop::clearSegmentComplete(){
   }
 }
 
-void Loop::setup(){
-  start_usince();
-  return;
-}
+
 
 #define PATTERN_SIZE 20
 #define BASE_DELAY 2000/PATTERN_SIZE // Pattern runs over 2,000 ms
@@ -62,6 +59,12 @@ int blink_patterns[4][PATTERN_SIZE] = {
   {1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0},  // empty  & running: 1 per second
 };
 
+/**
+ * @brief Blink the onboard LED and set the Empty and Running LEDs. 
+ * 
+ * @param running 
+ * @param empty 
+ */
 void blink(bool running, bool empty){
 
   static int pattern_index = 0;
@@ -70,7 +73,7 @@ void blink(bool running, bool empty){
 
   int pattern = ((int)empty)<<1 | ((int)running);
 
-  digitalWrite(EMPTY_PIN, !empty);
+  digitalWrite(EMPTY_PIN, empty);
   digitalWrite(RUNNING_PIN, running);
 
   if( (millis() - last) > BASE_DELAY  ){
@@ -83,6 +86,25 @@ void blink(bool running, bool empty){
 
 /* Run one iteration of the main loop
 */
+
+void Loop::setup(){
+
+  vector<int> pins{LED_BUILTIN,EMPTY_PIN, RUNNING_PIN, Y_SIG_PIN,B_SIG_PIN };
+  bool tog = true;
+  // Cycle thorugh the LEDs
+  for (int i = 0; i < 4; i++){
+    for(int p: pins){
+      digitalWrite(p, tog);
+      delay(200);
+    }
+    tog = !tog;
+
+  }
+
+
+  start_usince(); // set the initial time for usince();
+}
+
 void Loop::loopOnce(){
     // Blink the LED and toggle a debugging pin, to show we're not crashed. 
     

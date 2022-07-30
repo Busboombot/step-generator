@@ -56,8 +56,8 @@ pinMode(DEBUG_PIN_3, OUTPUT);
 pinMode(DEBUG_PIN_4, OUTPUT);
 #endif
 
-  Serial.begin(115200); 
-  Serial1.begin(115200);
+  Serial.begin(MAIN_SERIAL_BAUD); 
+  Serial1.begin(DEBUG_SERIAL_BAUD);
   Serial1.println("Debug Starting");
   delay(200);
 
