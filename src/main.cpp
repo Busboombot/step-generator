@@ -58,7 +58,11 @@ pinMode(DEBUG_PIN_4, OUTPUT);
 
   Serial.begin(MAIN_SERIAL_BAUD); 
   Serial1.begin(DEBUG_SERIAL_BAUD);
+  
+  #ifdef SERIAL1_IS_DEBUG
   Serial1.println("Debug Starting");
+  #endif
+  
   delay(200);
 
   mainLoop.setup();
