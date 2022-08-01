@@ -49,7 +49,6 @@ public:
     virtual ~Stepper(){}
     virtual void writeStep(){ }
     virtual void clearStep(){};
-    virtual void toggle(){};
     virtual void enable(){enabled = true;};
     virtual void enable(Direction dir){ setDirection(dir);enable();}
     virtual void disable() { setDirection(STOP); enabled = false;}

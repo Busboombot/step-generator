@@ -25,8 +25,8 @@ protected:
     int8_t direction = 0;
     int32_t position = 0;
 
-    uint8_t enable_active = 0;
-    uint8_t enable_inactive = 1;
+    uint8_t enable_active = LOW;
+    
 
 public:
     
@@ -41,24 +41,14 @@ public:
     ~StepDirectionStepper(){}
     
     inline void writeStep(){
-        fastSet(stepPin);
+        digitalWriteFast(stepPin, HIGH);
         position += direction;
     }
    
     inline void clearStep(){
-        fastClear(stepPin);
+        digitalWriteFast(stepPin, LOW);
     }
     
-    inline void toggle(){
-        if( (pinState = !pinState)){
-            digitalWriteFast(stepPin, HIGH);
-            position += direction;
-        } else {
-            digitalWriteFast(stepPin, LOW);
-        }
-    }
-
-
     
     inline void enable(Direction dir){  
         setDirection(dir);
@@ -66,7 +56,7 @@ public:
     }
     
     inline void disable(){
-        digitalWriteFast(enablePin, enable_inactive);// Active low
+        digitalWriteFast(enablePin, !enable_active);// Active low
         setDirection(STOP);
     }
     

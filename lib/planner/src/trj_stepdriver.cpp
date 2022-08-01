@@ -146,7 +146,7 @@ int StepDriver::update(){
     } else {
      
       if(nextClear == 0){
-        nextClear = t + 2;
+        nextClear = t + 3;
       }
     }
 

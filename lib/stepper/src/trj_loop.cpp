@@ -87,7 +87,8 @@ void blink(bool running, bool empty){
 /* Run one iteration of the main loop
 */
 
-void Loop::setup(){
+
+void cycleLeds(){
 
   vector<int> pins{LED_BUILTIN,EMPTY_PIN, RUNNING_PIN, Y_SIG_PIN,B_SIG_PIN };
   bool tog = true;
@@ -95,12 +96,15 @@ void Loop::setup(){
   for (int i = 0; i < 4; i++){
     for(int p: pins){
       digitalWrite(p, tog);
-      delay(200);
+      delay(75);
     }
     tog = !tog;
 
   }
+}
+void Loop::setup(){
 
+  cycleLeds();
 
   start_usince(); // set the initial time for usince();
 }
