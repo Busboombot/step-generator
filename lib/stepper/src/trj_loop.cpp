@@ -290,6 +290,7 @@ void Loop::printInfo(){
     StepperState &state = sd.getState(i);
     const Joint &j = planner.getJoint(i);
 
+
     sdp.printf("-- Axis %d \r\n"
             "SDE        : %d %d %d\r\n"
             "Hi Val     : %d %d %d\r\n"
