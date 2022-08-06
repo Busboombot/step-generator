@@ -2,9 +2,10 @@
 
 #include <vector>
 #include <iostream>
-#include "trj_planner.h"
+
 #include "trj_util.h"
 #include "trj_jointss.h"
+#include "trj_move.h"
 
 using namespace std;
 
@@ -35,6 +36,8 @@ public:
     std::vector<Joint> joints;
 
     bool sign_change = false;
+
+    Move::MoveType move_type = Move::MoveType::none; 
 
     friend ostream &operator<<( ostream &output, const Segment &s );
 

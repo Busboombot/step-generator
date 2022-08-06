@@ -25,6 +25,7 @@ enum class CommandCode : uint8_t {
   RMOVE =   11,  // A relative movement segment, with just the relative distance.   
   AMOVE =   12,  // An absolute movement
   JMOVE =   13,   // A Jog movement. 
+  HMOVE =   14,   // A Home movement. Move to the next limit
 
 
   RUN =     21,

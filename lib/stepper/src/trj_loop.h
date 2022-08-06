@@ -44,8 +44,12 @@ public:
     void enable();
     void disable();
 
-    void signalSegmentComplete();
+    
+    void signalSegmentComplete(); // Toggle pin to tell encoders that a segment is done
     void clearSegmentComplete();
+
+    // Read encoder signal that a limit has been hit. 
+    void limitChanged(); 
 
     void processMove(const uint8_t* buffer_, size_t size);
 
@@ -63,6 +67,11 @@ public:
 private:
 
     bool is_stopped = false;
+    int last_seg_num = 0;
+    bool running = false;
+
+    // Incremented when the encoders signal that a limit has been changed. 
+    int limitChanges = 0;
 
     Config config;
     AxisConfig axes_config[N_AXES];
@@ -77,8 +86,7 @@ private:
 
     CurrentState current_state;
     
-    int last_seg_num = 0;
-    bool running = false;
+
 
 
 };

@@ -13,6 +13,8 @@
 #include "trj_planner_const.h" // For N_AXES
 #include "trj_jointss.h"
 #include "trj_util.h"
+#include "trj_move.h"
+#include "trj_segment.h"
 
 using std::array;
 using std::cout;
@@ -26,54 +28,6 @@ using std::ostream;
 class Segment;
 class Joint;
 class PhaseJoints;
-
-
-/// A Move vector, which describes distances for all axes
-/**
- * The Move Vector describes the distances to move for all
- * axes, plus the maximum velocity for the whole vector. 
- * Note: The max velocity parameter is not currently used. 
-*/
-
-using MoveArray = std::vector<int32_t> ;
-
-struct Move {
-
-    enum class MoveType {
-        relative, 
-        absolute, 
-        jog
-    };
-
-    uint32_t seq = 0; 
-
-    MoveType move_type = MoveType::relative;
-
-    // Total Vector Time, in microseconds.
-    uint32_t t = 0; 
-
-    // Distances
-    MoveArray x;
-
-    Move(int n_joints):seq(0), move_type(MoveType::relative), t(0), x(){
-        x.resize(n_joints);
-    }
-
-    Move(int n_joints, uint32_t seq, uint32_t t, int v): seq(seq), t(t), x(){
-        x.resize(n_joints);
-    }
-
-    Move(uint32_t seq, uint32_t t, MoveType move_type, MoveArray x): seq(seq), move_type(move_type), t(t), x(x){}
-
-    Move(uint32_t seq, uint32_t t, MoveType move_type, std::initializer_list<int> il): 
-        seq(seq), move_type(move_type), t(t), x(MoveArray(il.begin(), il.end())){}
-    
-    Move(uint32_t t, std::initializer_list<int> il): Move(0, t, MoveType::relative, il){}
-    
-
-private: 
-    friend ostream &operator<<( ostream &output, const Move &p );
-};
 
 
 /// Trajectory Planner. Turns a sequence of moves into moves plus velocities
@@ -94,7 +48,7 @@ protected:
 
     int current_phase = 0;
 
-    // Current phase that is beg stepped out?
+    // Current phase that is being stepped out?
     PhaseJoints phase_joints;
 
     int32_t queue_size=0;
@@ -150,6 +104,14 @@ public:
     }
 
     bool isEmpty(){ return segments.size() == 0; }
+
+    Move::MoveType getCurrentMoveType(){ 
+        if (!isEmpty()) {
+            return segments.front()->move_type;
+        } else {
+            return Move::MoveType::none;
+        }
+    }
 
     friend ostream &operator<<( ostream &output, const Planner &p );
     

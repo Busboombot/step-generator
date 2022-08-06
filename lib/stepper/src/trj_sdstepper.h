@@ -18,35 +18,28 @@ protected:
     
     bool pinState = true;
     
-    uint8_t stepPin;
-    uint8_t directionPin;
-    uint8_t enablePin;
-
     int8_t direction = 0;
     int32_t position = 0;
 
     uint8_t enable_active = LOW;
     
-
 public:
     
-    inline StepDirectionStepper(uint8_t axis_n, uint8_t stepPin, uint8_t directionPin, uint8_t enablePin): 
-        Stepper(axis_n),
-        stepPin(stepPin), directionPin(directionPin), enablePin(enablePin) {
-        pinMode(stepPin, OUTPUT);
-        pinMode(directionPin, OUTPUT);
-        pinMode(enablePin, OUTPUT); 
+     inline StepDirectionStepper(AxisConfig config) :  Stepper(config) {
+        pinMode(config.step_pin, config.step_output_mode);
+        pinMode(config.direction_pin, config.direction_output_mode);
+        pinMode(config.enable_pin, config.enable_output_mode); 
     }
- 
+
     ~StepDirectionStepper(){}
     
     inline void writeStep(){
-        digitalWriteFast(stepPin, HIGH);
+        digitalWriteFast(config.step_pin, config.step_high_value);
         position += direction;
     }
    
     inline void clearStep(){
-        digitalWriteFast(stepPin, LOW);
+        digitalWriteFast(config.step_pin, !config.step_high_value);
     }
     
     
@@ -56,17 +49,17 @@ public:
     }
     
     inline void disable(){
-        digitalWriteFast(enablePin, !enable_active);// Active low
+        digitalWriteFast(config.enable_pin, !config.enable_high_value);
         setDirection(STOP);
     }
     
     inline void setDirection(Direction dir){
 
         if (dir == CW){
-            fastSet(directionPin);
+            digitalWriteFast(config.direction_pin, config.direction_high_value);
             direction = CW;
         } else if (dir == CCW){
-            fastClear(directionPin);
+            digitalWriteFast(config.direction_pin, !config.direction_high_value);
             direction = CCW;
         } else {
             direction = STOP;
@@ -79,7 +72,7 @@ public:
 private: 
 
     inline void enable(){
-        digitalWriteFast(enablePin, enable_active);  // Usually active low 
+        digitalWriteFast(config.enable_pin, config.enable_high_value);
     }
      
 };

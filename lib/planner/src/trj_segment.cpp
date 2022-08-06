@@ -12,6 +12,8 @@ Segment::Segment(std::vector<Joint> joints, Segment* prior,  const Move& move):
         n(move.seq), target_t(move.t) {
 
     int axis_n = 0;
+
+    move_type = move.move_type;
    
     for(Joint& joint : joints){
         joint_segments.emplace_back(axis_n, joint, this,move.x[axis_n]);

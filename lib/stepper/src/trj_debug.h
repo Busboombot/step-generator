@@ -5,10 +5,10 @@
 extern Stream &debug_serial;
 
 
-#define DEBUG_PIN_1 5
-#define DEBUG_PIN_2 6
-#define DEBUG_PIN_3 7
-#define DEBUG_PIN_4 8
+//#define DEBUG_PIN_1 5
+//#define DEBUG_PIN_2 6
+//#define DEBUG_PIN_3 7
+//#define DEBUG_PIN_4 8
 
 #ifdef DEBUG_PIN_1
 extern int debug_state_1;

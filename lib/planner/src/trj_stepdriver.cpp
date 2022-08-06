@@ -101,8 +101,6 @@ int StepDriver::loadNextPhase(){
 
 
 
-
-
 int StepDriver::update(){
 
   static unsigned long  stepsLeft = 0;
@@ -146,7 +144,7 @@ int StepDriver::update(){
     } else {
      
       if(nextClear == 0){
-        nextClear = t + 3;
+        nextClear = t + period - 1;
       }
     }
 

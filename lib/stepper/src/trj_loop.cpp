@@ -22,6 +22,8 @@ extern Loop  mainLoop;
 
 void clearSegmentCompleteISR(){ mainLoop.clearSegmentComplete();}
 
+void limitChangedISR() {mainLoop.limitChanged();}
+
 inline void Loop::signalSegmentComplete(){
 
   for(int i = 0; i < config.n_axes; i++){
@@ -37,7 +39,7 @@ inline void Loop::signalSegmentComplete(){
 
   if(config.segment_complete_pin > 0){
     digitalWriteFast(config.segment_complete_pin, HIGH);
-    segmentCompleteTimer.begin(clearSegmentCompleteISR,2); 
+    segmentCompleteTimer.begin(clearSegmentCompleteISR,4); 
   }
 }
 
@@ -45,8 +47,12 @@ inline void Loop::clearSegmentComplete(){
   if(config.segment_complete_pin > 0){
     digitalWriteFast(config.segment_complete_pin, LOW);
   }
+  segmentCompleteTimer.end(); 
 }
 
+void Loop::limitChanged(){
+  limitChanges++;
+}
 
 
 #define PATTERN_SIZE 20
@@ -77,6 +83,7 @@ void blink(bool running, bool empty){
   digitalWrite(RUNNING_PIN, running);
 
   if( (millis() - last) > BASE_DELAY  ){
+    
     pattern_index = (pattern_index+1)%PATTERN_SIZE;
     digitalWrite(LED_BUILTIN, blink_patterns[pattern][pattern_index] );
     last = millis();
@@ -121,6 +128,7 @@ void Loop::loopOnce(){
 
       int seq = sd.checkIsDone();
       if (seq >=0){
+         
           signalSegmentComplete();
       }
 
@@ -131,6 +139,12 @@ void Loop::loopOnce(){
     } else {
 
     }
+
+    if(limitChanges > 0){
+      limitChanges = 0;
+      sdp.printf("Limits Changed!");
+    }
+
 }
 
 // Start the timers, if there are segments available. 
@@ -164,14 +178,23 @@ void Loop::disable() {
 
 void Loop::setConfig(Config* config_){
   
+
+  config = *config_;
+  /*
   config.interrupt_delay = config_->interrupt_delay;
   config.n_axes = config_->n_axes;
   config.debug_print = config_->debug_print;
   config.debug_tick = config_->debug_tick;
   config.segment_complete_pin = config_->segment_complete_pin;
+  */
 
   if (config.segment_complete_pin > 0){
     pinMode(config.segment_complete_pin, OUTPUT);
+  }
+
+  if (config.limit_pin > 0){
+    pinMode(config.limit_pin, INPUT);
+    attachInterrupt(config.limit_pin, limitChangedISR, CHANGE);
   }
 
   sd.setNAxes(config.n_axes);
@@ -192,14 +215,12 @@ void Loop::setAxisConfig(AxisConfig* as){
       delete steppers[as->axis];
     }
 
-    steppers[as->axis] = new StepDirectionStepper(as->axis,as->step_pin,as->direction_pin,as->enable_pin);
-
+    steppers[as->axis] = new StepDirectionStepper(*as);
 
     sd.setStepper(as->axis, steppers[as->axis]);
   
     axes_config[as->axis] = *as;
   }
-
 }
 
 // Turn a move command into a move and add it to the planner
@@ -213,8 +234,11 @@ void Loop::processMove(const uint8_t* buffer_, size_t size){
 
     switch(ph->code){
         case CommandCode::RMOVE:
-     
         move.move_type = Move::MoveType::relative;
+        break;
+
+        case CommandCode::HMOVE:
+        move.move_type = Move::MoveType::home;
         break;
         
         case CommandCode::AMOVE:
@@ -228,8 +252,6 @@ void Loop::processMove(const uint8_t* buffer_, size_t size){
         default: ; 
     }
 
-
-
     for (int axis = 0; axis < getConfig().n_axes; axis++){
       move.x[axis] = m->x[axis];
       // FIXME! This position update will only work for relative moves
@@ -239,7 +261,6 @@ void Loop::processMove(const uint8_t* buffer_, size_t size){
     auto &planner = sd.getPlanner();
     current_state.queue_length = planner.getQueueSize();
     current_state.queue_time = planner.getQueueTime();
-
 
     sd.push(move);
 }
@@ -254,23 +275,31 @@ void Loop::printInfo(){
             "Running    : %d\r\n"
             "N Axes     : %d\r\n"
             "Intr Delay : %d\r\n"
-            "ClrSeg Pin : %d\r\n"
+            "Seg Pin    : %d\r\n"
+            "Lim Pin    : %d\r\n"
             "Debug print: %d\r\n"
             "Debug tick : %d\r\n",
            planner.getQueueSize(), planner.getQueueTime(), running, 
            config.n_axes, config.interrupt_delay, 
-           config.segment_complete_pin,config.debug_print, config.debug_tick) ;
+           config.segment_complete_pin, config.limit_pin,
+           config.debug_print, config.debug_tick) ;
   
   for( int i = 0 ; i < config.n_axes; i++){
-    AxisConfig as = axes_config[i];
+    Stepper *s = getStepper(i);
+    AxisConfig as = s->getConfig();
     StepperState &state = sd.getState(i);
     const Joint &j = planner.getJoint(i);
 
     sdp.printf("-- Axis %d \r\n"
             "SDE        : %d %d %d\r\n"
+            "Hi Val     : %d %d %d\r\n"
+            "Out Mode   : %d %d %d\r\n"
             "A V Max    : %d %d\r\n"
             "Position   : %d\r\n",
-            j.n, as.step_pin, as.direction_pin, as.enable_pin, 
+            j.n,
+            as.step_pin, as.direction_pin, as.enable_pin, 
+            as.step_high_value, as.direction_high_value, as.enable_high_value, 
+            as.step_output_mode, as.direction_output_mode, as.enable_output_mode,
             static_cast<int>(j.a_max), static_cast<int>(j.v_max),
             state.getPosition()); 
   }

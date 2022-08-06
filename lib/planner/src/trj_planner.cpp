@@ -155,15 +155,3 @@ ostream &operator<<( ostream &output, const Planner &p ) {
 }
 
 
-ostream &operator<<( ostream &output, const Move &m ) {
-    
-    output << "[Move #" << m.seq << " " << (int)m.move_type <<  " t=" <<m.t << " (" ;
-
-    for(auto &xi : m.x){
-        output << xi << ", ";
-    }
-
-    output << ")]" << endl; 
-
-    return output;
-}

@@ -64,7 +64,8 @@ void MessageProcessor::processPacket(const uint8_t* buffer_, size_t size){
       
       return; // Echos are their own ack.
 
-    } else if(ph->code == CommandCode::RMOVE || ph->code == CommandCode::AMOVE  || ph->code == CommandCode::JMOVE ) {
+    } else if(ph->code == CommandCode::RMOVE || ph->code == CommandCode::AMOVE  
+              || ph->code == CommandCode::JMOVE  || ph->code == CommandCode::HMOVE ) {
       loop.processMove(buffer_, size);
 
     } else if(ph->code == CommandCode::RUN){

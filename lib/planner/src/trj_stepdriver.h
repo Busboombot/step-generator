@@ -4,6 +4,7 @@
 
 #include "trj_jointss.h"
 #include "trj_planner_const.h" // For N_AXES
+#include "trj_config.h"
 #include "trj_planner.h"
 #include "trj_util.h"
 #include "trj_debug.h"
@@ -38,21 +39,28 @@ class Stepper {
 
 protected:
 
+
+    AxisConfig config;
     int8_t axis;
     bool enabled = false;
     Direction direction = Direction::STOP;
-     
+
+
 public:
 
     Stepper() : axis(0), enabled(false){};
-    Stepper(int8_t axis) : axis(axis), enabled(false){};
+    Stepper(int8_t axis) : axis(axis), enabled(false){ config.axis=axis;};
+    Stepper(AxisConfig config) : config(config), axis(config.axis) {};
     virtual ~Stepper(){}
+
     virtual void writeStep(){ }
     virtual void clearStep(){};
     virtual void enable(){enabled = true;};
     virtual void enable(Direction dir){ setDirection(dir);enable();}
     virtual void disable() { setDirection(STOP); enabled = false;}
     void setDirection(Direction dir){direction = dir;};
+    void setConfig(AxisConfig config){ this->config = config;}
+    AxisConfig getConfig(){ return config; }
 
 private: 
     friend ostream &operator<<( ostream &output, const Stepper &s );
