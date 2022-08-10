@@ -84,21 +84,6 @@ struct RunOut run_out(Planner &p, bool print = false){
 
 
 
-void test_low_rpm(){
-    Planner p = Planner( {Joint(0, 5333, 53333)} );
-    
-    int x = 6400;
-    
-    p.push(Move(0,1e5, Move::MoveType::relative, {x}));
-    p.push(Move(0,1e5, Move::MoveType::relative, {-x}));
-    //TEST_ASSERT_EQUAL(1000, p.getPosition()[0]);
-    
-    cout << p <<  endl;
-
-    run_out(p, true);
-
-}
-
 void test_driver(){
 
 
@@ -143,15 +128,54 @@ void test_driver(){
     cout  << sd << endl;
 
 }
+/* Triangle segments, which have a zero cruise time (v_c) 
+*  because either their acceleation time is too long, or the total segment
+* is too short, dont' get their velocities linked. 
+Possibly related to:
+*   void JointSegment::update_end_velocity_limit(bool is_last)
+*       The check  x_a + x_d >= x forces final velocity to zero. 
+*/
+
+void test_low_rpm(){
+    {
+    Planner p = Planner( {Joint(0, 33333, 66666)} );
+    
+    int x = 5000;
+    
+    p.push(Move(0,0, Move::MoveType::relative, {x}));
+    p.push(Move(1,0, Move::MoveType::relative, {x}));
+
+    
+    cout << p <<  endl;
+
+    run_out(p, true);
+    }
+
+    cout << endl << "XXXXXXXXXXXXXXXX"  << endl  << endl;
+
+    {
+    Planner p = Planner( {Joint(0, 33333, 6666600)} );
+    
+    int x = 5000;
+    
+    p.push(Move(0,0, Move::MoveType::relative, {x}));
+    p.push(Move(1,0, Move::MoveType::relative, {x}));
+
+    
+    cout << p <<  endl;
+
+    run_out(p, true);
+    }
+
+}
+
 
 
 int main(){
 
-    UNITY_BEGIN();   
-
+    UNITY_BEGIN();     
+    //RUN_TEST(test_driver);
     RUN_TEST(test_low_rpm);
-    RUN_TEST(test_driver);
-   
     UNITY_END();
     return 0;
 }

@@ -78,14 +78,14 @@ private:
 
     IntervalTimer segmentCompleteTimer; // Clears the segment complete signal pin. 
 
-    MessageProcessor sdp;
-
     StepDirectionStepper *steppers[N_AXES] = {0};
 
     StepDriver sd;
 
     CurrentState current_state;
-    
+
+public:  
+    MessageProcessor sdp;
 
 
 

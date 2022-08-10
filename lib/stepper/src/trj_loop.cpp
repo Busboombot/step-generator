@@ -22,7 +22,9 @@ extern Loop  mainLoop;
 
 void clearSegmentCompleteISR(){ mainLoop.clearSegmentComplete();}
 
-void limitChangedISR() {mainLoop.limitChanged();}
+void limitChangedISR() {
+  mainLoop.limitChanged();
+  }
 
 inline void Loop::signalSegmentComplete(){
 
@@ -141,8 +143,10 @@ void Loop::loopOnce(){
     }
 
     if(limitChanges > 0){
+      if(sd.getPlanner().getCurrentMoveType() == Move::MoveType::home){
+        reset();
+      }
       limitChanges = 0;
-      sdp.printf("Limits Changed!");
     }
 
 }
@@ -180,13 +184,6 @@ void Loop::setConfig(Config* config_){
   
 
   config = *config_;
-  /*
-  config.interrupt_delay = config_->interrupt_delay;
-  config.n_axes = config_->n_axes;
-  config.debug_print = config_->debug_print;
-  config.debug_tick = config_->debug_tick;
-  config.segment_complete_pin = config_->segment_complete_pin;
-  */
 
   if (config.segment_complete_pin > 0){
     pinMode(config.segment_complete_pin, OUTPUT);
@@ -194,7 +191,7 @@ void Loop::setConfig(Config* config_){
 
   if (config.limit_pin > 0){
     pinMode(config.limit_pin, INPUT);
-    attachInterrupt(config.limit_pin, limitChangedISR, CHANGE);
+    attachInterrupt(config.limit_pin, limitChangedISR, RISING);
   }
 
   sd.setNAxes(config.n_axes);

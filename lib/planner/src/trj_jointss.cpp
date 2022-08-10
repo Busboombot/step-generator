@@ -35,7 +35,13 @@ JointSegment::JointSegment(int n, Joint &joint, Segment *segment, int x_ ):
 
 void JointSegment::update_start_velocity_limit(bool is_first, bool sign_change){
 
-    if (is_first or sign_change or x == 0 or x_a + x_d >= x) {
+    bool is_triangle = x_a + x_d >= x;
+
+    // The is_triangle check will cause adjacent triangles to have zero velocity between 
+    // them, when they should be linked together. 
+    //is_triangle = false;
+
+    if (is_first or sign_change or x == 0 or is_triangle) {
         v_0_max = 0;
     } else {
         // Limit to either max joint velocity, or the small-x case.
@@ -76,6 +82,16 @@ void JointSegment::update_boundary_velocity(JointSegment *prior_js, JointSegment
     
 }
 
+/**
+ * @brief Use a binary search to find the value of v_c that produces an value for
+ * f(v_c) of close to 0. 
+ * 
+ * @param f  Error functon
+ * @param v_min minimum v_c value
+ * @param v_guess minital v_c value
+ * @param v_max max v_c value. 
+ * @return float 
+ */
 float binary_search(std::function<float(float)> f, float v_min, float v_guess, float v_max){
 
     float old_guess;
@@ -117,8 +133,21 @@ float JointSegment::update_sub_segments(){
     return x_a + x_c + x_d;
 }
 
+/**
+ * @brief Use a binary search to find a v_c that minimized the error in the total distance
+ * traveled for a segment. 
+ * 
+ * @return float 
+ */
 float JointSegment::search_v_c(){
 
+        // For a fixed initial (v_0) and final (v_1) velocity, and fixed
+        // accell (t_a) and decel (t_d) times, find the cruise velocity
+        // that gives us a trapezoidal profile with the required distance (x)
+
+        // This closure function returns the error between the area of the trapezoid
+        // with a given v_c and the required distance x. The binary serarch 
+        
         auto f = [this](float v_c){   
             
             float x_t = (v_0 + v_c) * segment->t_a / 2. +
@@ -177,6 +206,7 @@ void JointSegment::update_t_min(){
         // Not enough distance to accel to max speed -> triangle profile
         if (x_a + x_d > x){
             x_a = x_d = x / 2.; // assumes a_max and d_max are equal!   
+            // Above will result in x_c = 0 
             t_a = accel_t_for_x(x_a, v_0, joint.a_max);
             t_d = accel_t_for_x(x_d, v_1, joint.d_max);
         }
