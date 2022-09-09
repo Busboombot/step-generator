@@ -39,7 +39,7 @@ void JointSegment::update_start_velocity_limit(bool is_first, bool sign_change){
 
     // The is_triangle check will cause adjacent triangles to have zero velocity between 
     // them, when they should be linked together. 
-    //is_triangle = false;
+    is_triangle = false;
 
     if (is_first or sign_change or x == 0 or is_triangle) {
         v_0_max = 0;

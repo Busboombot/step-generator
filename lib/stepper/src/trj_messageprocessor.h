@@ -56,12 +56,27 @@ struct PacketHeader {
   
 };  // 4
 
+// Pre-solved move for one axis
+struct Block {
+  int16_t v_0;
+  int16_t v_c;
+  int16_t v_1;
+  int16_t x_a;
+  int16_t x_c;
+  int16_t x_d;
+}; // 12 bytes
+
+// Pre-solved move for whole segment
+struct BlockMove {
+  uint32_t segment_time = 0; // total segment time, in microseconds // 4
+  struct Block blocks[N_AXES];
+}; 
+
 // Payload of the move command
 struct Moves {
   uint32_t segment_time = 0; // total segment time, in microseconds // 4
   int32_t x[N_AXES];
 }; // 8
-
 
 
 extern CurrentState current_state;
